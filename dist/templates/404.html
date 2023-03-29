@@ -1,0 +1,13 @@
+{{ template "head.html" . }}
+
+<main class="flex-shrink-0">
+    <div class="container">
+        <h1>{{ call .Trans "404 Not Found" }}</h1>
+        <p>{{ call .Trans "The page you're looking for could not be found." }} <a href="/">{{ call .Trans "Click here" }}</a> {{ call .Trans "to return to the main page." }}</p>
+    </div>
+</main>
+
+<script src="/assets/js/main.js"></script>
+{{ template "tracking.html" }}
+</body>
+</html>

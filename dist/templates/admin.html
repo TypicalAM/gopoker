@@ -1,0 +1,15 @@
+{{ template "header.html" . }}
+
+<main class="flex-shrink-0">
+    <div class="container">
+        <h1 class="mt-5">{{ call .Trans "Admin Dashboard" }}</h1>
+
+        {{ template "messages.html" . }}
+
+        <p>{{ call .Trans "You now have an authenticated session, feel free to log out using the link in the navbar above." }}</p>
+        <p>{{ call .Trans "Below is a chart showing the number of user sign ups to this website per month." }}</p>
+        {{ template "chart.html" .Chart }}
+    </div>
+</main>
+
+{{ template "footer.html" . }}
