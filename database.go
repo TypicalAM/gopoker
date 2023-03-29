@@ -1,6 +1,8 @@
 package gopoker
 
 import (
+	"log"
+
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/models"
 	"gorm.io/driver/mysql"
@@ -18,7 +20,25 @@ func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
+// Seed provides some initial data for the database.
+func seed(db *gorm.DB) {
+	// Get the game with the ID of 1
+	var game models.Game
+	res := db.First(&game, 1)
+	if res.Error != nil {
+		log.Println("Creating game")
+		// Create a new game
+		game = models.Game{
+			UUID:    "test",
+			Playing: true,
+		}
+		db.Create(&game)
+	}
+}
+
 // MigrateDatabase migrates the database.
 func MigrateDatabase(db *gorm.DB) error {
-	return db.AutoMigrate(&models.User{}, &models.Session{}, &models.Game{})
+	err := db.AutoMigrate(&models.Game{}, &models.User{}, &models.Session{})
+	seed(db)
+	return err
 }

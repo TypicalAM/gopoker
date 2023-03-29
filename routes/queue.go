@@ -21,7 +21,7 @@ func (controller Controller) Queue(c *gin.Context) {
 	// Get all the games which have playing = false
 	// If there are no games, create a new game
 	games := []models.Game{}
-	res := controller.db.Where("playing = ?", false).Find(&games)
+	res := controller.db.Model(&models.Game{}).Preload("Players").Where("playing = ?", false).Find(&games)
 	if res.Error != nil {
 		pd.Messages = append(pd.Messages, Message{
 			Type:    "error",
@@ -90,6 +90,9 @@ func (controller *Controller) createNewGame(c *gin.Context, user *models.User) {
 	pd := controller.DefaultPageData(c)
 	session := sessions.Default(c)
 
+	log.Println("Creating new game")
+	log.Println("User: ", user.Username)
+
 	// Create a new game
 	newGameUUID := uuid.New().String()
 	game := models.Game{
@@ -99,7 +102,7 @@ func (controller *Controller) createNewGame(c *gin.Context, user *models.User) {
 	}
 
 	// Try to save the new game
-	res := controller.db.Create(&game)
+	res := controller.db.Model(&models.Game{}).Preload("Players").Create(&game)
 	if res.Error != nil {
 		pd.Messages = append(pd.Messages, Message{
 			Type:    "error",

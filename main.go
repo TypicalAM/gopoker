@@ -87,6 +87,7 @@ func Run() {
 	auth.Use(middleware.Sensitive())
 	auth.GET("/lobby", controller.Lobby)
 	auth.GET("/lobby/queue", controller.Queue)
+	auth.GET("/id/:id", controller.Game)
 
 	if err = r.Run(cfg.ListenPort); err != nil {
 		log.Fatalln(err)

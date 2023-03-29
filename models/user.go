@@ -7,5 +7,6 @@ type User struct {
 	gorm.Model
 	Username string
 	Password string
+	GameID	 uint
 	Sessions []Session
 }

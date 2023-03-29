@@ -52,7 +52,10 @@ func (controller Controller) RegisterPost(c *gin.Context) {
 
 	// Create the user
 	username := c.PostForm("username")
-	user := models.User{Username: username}
+	user := models.User{
+		Username: username,
+		GameID:   1,
+	}
 
 	res := controller.db.Where(&user).First(&user)
 	if (res.Error != nil) && (res.Error != gorm.ErrRecordNotFound || res.RowsAffected > 0) {

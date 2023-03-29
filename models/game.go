@@ -10,5 +10,5 @@ type Game struct {
 	gorm.Model
 	Playing bool
 	UUID    string
-	Players []User `gorm:"foreignKey:ID"`
+	Players []User
 }
