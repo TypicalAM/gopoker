@@ -72,12 +72,12 @@ func Run() {
 	controller := routes.New(db, cfg)
 	r.Any("/", controller.Index)
 
-	noAuth := r.Group("/accounts")
+	noAuth := r.Group("/")
 	noAuth.Use(middleware.NoAuth())
 	noAuth.GET("/login", controller.Login)
 	noAuth.GET("/register", controller.Register)
 
-	noAuthPost := noAuth.Group("/accounts")
+	noAuthPost := noAuth.Group("/")
 	noAuthPost.Use(middleware.Throttle(cfg.RequestsPerMin))
 	noAuthPost.POST("/login", controller.LoginPost)
 	noAuthPost.POST("/register", controller.RegisterPost)
@@ -86,6 +86,7 @@ func Run() {
 	auth.Use(middleware.Auth())
 	auth.Use(middleware.Sensitive())
 	auth.GET("/lobby", controller.Lobby)
+	auth.GET("/lobby/queue", controller.Queue)
 
 	if err = r.Run(cfg.ListenPort); err != nil {
 		log.Fatalln(err)

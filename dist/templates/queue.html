@@ -1,0 +1,13 @@
+{{ template "header.html" . }}
+
+<main class="flex-shrink-0">
+    <div class="container">
+        <h1 class="mt-5">Site name</h1>
+        <p class="lead"> this is the queue page, we are waiting for a game to join... </p>
+
+        {{ template "messages.html" . }}
+
+    </div>
+</main>
+
+{{ template "footer.html" . }}

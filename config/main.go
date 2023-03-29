@@ -20,6 +20,7 @@ type Config struct {
 	CacheParameter string
 	RequestsPerMin int
 	ListenPort     string
+	GamePlayerCap  int
 }
 
 // ReadConfig reads the config from the .env file and populates the Config struct.
@@ -50,6 +51,12 @@ func ReadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	gameplayercapRaw := os.Getenv("GAME_PLAYER_CAP")
+	gameplayercap, err := strconv.Atoi(gameplayercapRaw)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
 		MySQLUser:      os.Getenv("MYSQL_USER"),
 		MySQLPassword:  os.Getenv("MYSQL_PASSWORD"),
@@ -61,6 +68,7 @@ func ReadConfig() (*Config, error) {
 		CacheParameter: cacheParameter,
 		RequestsPerMin: requestsPerMin,
 		ListenPort:     os.Getenv("LISTEN_PORT"),
+		GamePlayerCap:  gameplayercap,
 	}
 
 	return cfg, nil

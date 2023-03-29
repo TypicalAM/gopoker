@@ -9,10 +9,8 @@ import (
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
-var GameIDKey = "gameID"
 var userNotFoundErr = fmt.Errorf("User not found")
 
 func (controller Controller) getUser(c *gin.Context) (*models.User, error) {
@@ -41,21 +39,11 @@ func (controller Controller) Lobby(c *gin.Context) {
 	user, _ := controller.getUser(c)
 	log.Println(user.Username)
 	session := sessions.Default(c)
-	gameIDInterface := session.Get(GameIDKey)
+	gameIDInterface := session.Get(models.GameIDKey)
 	if gameID, ok := gameIDInterface.(string); ok {
 		log.Println("GameID found, redirecting to game: ", gameID)
 		c.Redirect(http.StatusFound, "/game/id/"+gameID)
 		return
-	} else {
-		newGameID := uuid.New().String()
-		log.Println("GameID not found, setting it to ", newGameID)
-		session.Set(GameIDKey, newGameID)
-		session.Save()
-
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "success",
-			Content: "We created a new game for you. Share this link with your friends to play together: " + c.Request.Host + "/game/" + newGameID,
-		})
 	}
 
 	c.HTML(http.StatusOK, "lobby.html", pd)

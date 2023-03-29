@@ -20,5 +20,5 @@ func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 
 // MigrateDatabase migrates the database.
 func MigrateDatabase(db *gorm.DB) error {
-	return db.AutoMigrate(&models.User{}, &models.Session{})
+	return db.AutoMigrate(&models.User{}, &models.Session{}, &models.Game{})
 }

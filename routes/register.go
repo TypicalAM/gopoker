@@ -82,4 +82,6 @@ func (controller Controller) RegisterPost(c *gin.Context) {
 		Type:    "success",
 		Content: registerSuccess,
 	})
+
+	c.HTML(http.StatusOK, "register.html", pd)
 }
