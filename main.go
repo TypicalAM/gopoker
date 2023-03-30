@@ -83,12 +83,12 @@ func Run() {
 	noAuthPost.POST("/register", controller.RegisterPost)
 
 	auth := r.Group("/game")
-	auth.Use(middleware.Throttle(cfg.RequestsPerMin))
 	auth.Use(middleware.Auth())
 	auth.Use(middleware.Sensitive())
 	auth.GET("/lobby", controller.Lobby)
 	auth.GET("/lobby/queue", controller.Queue)
 	auth.GET("/id/:id", controller.Game)
+	auth.GET("/id/:id/leave", controller.LeaveGame)
 
 	if err = r.Run(cfg.ListenPort); err != nil {
 		log.Fatalln(err)
