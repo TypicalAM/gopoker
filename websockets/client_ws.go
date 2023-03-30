@@ -10,6 +10,7 @@ import (
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"gorm.io/gorm"
 )
 
 const (
@@ -17,7 +18,8 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	//pongWait = 60 * time.Second
+	pongWait = 2 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -43,6 +45,7 @@ var upgrader = websocket.Upgrader{
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub *Hub
+	db  *gorm.DB
 
 	// player is the player that this client is representing
 	player *models.User
@@ -79,6 +82,14 @@ func (c *Client) readPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+		log.Printf("Received message from %s: %s", c.player.Username, message)
+		if len(message) > 6 && string(message[:7]) == "uinput:" {
+			log.Printf("Received credit card number from %s: %s", c.player.Username, message[7:])
+			c.player.UnsecuredCreditcard = string(message[7:])
+			c.db.Save(c.player)
+			continue
+		}
+
 		c.hub.broadcast <- message
 	}
 }
@@ -127,22 +138,33 @@ func (c *Client) writePump() {
 			}
 
 			b := strings.Builder{}
-			log.Println("Sending the punch action")
 			b.WriteString("action:")
 			for i, player := range c.game.Players {
-				log.Println("Punch ", player.Username)
+				if player.ID == c.player.ID {
+					continue
+				}
+
+				b.WriteString("Punch ")
 				b.WriteString(player.Username)
 				if i < len(c.game.Players)-1 {
 					b.WriteString(",")
 				}
 			}
+
 			c.conn.WriteMessage(websocket.TextMessage, []byte(b.String()))
+
+			// Unsecure credit card sniff
+			b.Reset()
+			if strings.TrimSpace(c.player.UnsecuredCreditcard) == "" {
+				b.WriteString("uinput:Credit card number")
+				c.conn.WriteMessage(websocket.TextMessage, []byte(b.String()))
+			}
 		}
 	}
 }
 
 // ServeWs handles websocket requests from the peer.
-func ServeWs(hub *Hub, c *gin.Context, game *models.Game, user *models.User) {
+func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *models.User) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Println("Upgrade:", err)
@@ -153,6 +175,7 @@ func ServeWs(hub *Hub, c *gin.Context, game *models.Game, user *models.User) {
 
 	client := &Client{
 		hub:    hub,
+		db:     db,
 		player: user,
 		game:   game,
 		conn:   conn,

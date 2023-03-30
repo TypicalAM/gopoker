@@ -2,6 +2,8 @@ window.onload = main;
 
 function main() {
 	let conn;
+	let lastMessage = "";
+	let secondToLastMessage = "";
 	let table = document.getElementById("table_body")
 
 	if (window["WebSocket"]) {
@@ -29,6 +31,15 @@ function main() {
 	}
 
 	function handleMessage(msg) {
+		console.log("Received message: " + msg);
+		if (msg === lastMessage || msg === secondToLastMessage) {
+			console.log("Ignoring duplicate message.");
+			return;
+		}
+
+		secondToLastMessage = lastMessage;
+		lastMessage = msg;
+
 		let row = table.insertRow();
 		let cell = row.insertCell();
 
@@ -48,6 +59,18 @@ function main() {
 			case 'status':
 				let statusMsg = msg.substring(7);
 				cell.innerHTML = "<b>Status:</b> " + statusMsg;
+				break;
+
+			case 'uinput':
+				let inputMsg = msg.substring(7);
+				textInput = document.createElement("input");
+				textInput.type = "text";
+				textInput.placeholder = inputMsg;
+				button = document.createElement("button");
+				button.innerHTML = "Send";
+				button.onclick = function() { conn.send("uinput:"+textInput.value); };
+				cell.appendChild(textInput);
+				cell.appendChild(button);
 				break;
 
 			default:

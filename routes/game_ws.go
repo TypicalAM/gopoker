@@ -19,5 +19,5 @@ func (controller Controller) GameWS(c *gin.Context) {
 	}
 
 	// Serve the websocket
-	websockets.ServeWs(controller.hub, c, game, user)
+	websockets.ServeWs(controller.hub, controller.db, c, game, user)
 }
