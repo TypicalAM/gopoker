@@ -7,7 +7,7 @@ function main() {
 	let table = document.getElementById("table_body")
 
 	if (window["WebSocket"]) {
-		let target = "ws://" + window.location.href.substring(7) + "/ws";
+		let target = "ws://" + window.location.href.substring(7) + "ws";
 		console.log("Connecting to " + target);
 		conn = new WebSocket(target);
 		conn.onmessage = onmessage;

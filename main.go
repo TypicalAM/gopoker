@@ -83,16 +83,16 @@ func Run() {
 
 	noAuthPost := noAuth.Group("/")
 	noAuthPost.Use(middleware.Throttle(cfg.RequestsPerMin))
-	noAuthPost.POST("/login", controller.LoginPost)
-	noAuthPost.POST("/register", controller.RegisterPost)
+	noAuthPost.POST("/login/", controller.LoginPost)
+	noAuthPost.POST("/register/", controller.RegisterPost)
 
 	auth := r.Group("/")
 	auth.Use(middleware.Auth())
 	auth.Use(middleware.Sensitive())
-	auth.GET("/logout", controller.Logout)
-	auth.GET("/game/lobby", controller.Lobby)
-	auth.GET("/game/lobby/queue", controller.Queue)
-	auth.GET("/game/id/:id", controller.Game)
+	auth.GET("/logout/", controller.Logout)
+	auth.GET("/game/lobby/", controller.Lobby)
+	auth.GET("/game/lobby/queue/", controller.Queue)
+	auth.GET("/game/id/:id/", controller.Game)
 	auth.GET("/game/id/:id/leave", controller.LeaveGame)
 	auth.GET("/game/id/:id/ws", controller.GameWS)
 
