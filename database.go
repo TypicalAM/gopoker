@@ -20,25 +20,20 @@ func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// Seed provides some initial data for the database.
-func seed(db *gorm.DB) {
-	// Get the game with the ID of 1
-	var game models.Game
-	res := db.First(&game, 1)
-	if res.Error != nil {
-		log.Println("Creating game")
-		// Create a new game
-		game = models.Game{
-			UUID:    "test",
-			Playing: true,
-		}
-		db.Create(&game)
-	}
+// delOrphan deletes the orphan games from the database.
+func delOrphan(db *gorm.DB) {
+	// Set the gameID for every user to 0
+	res := db.Model(&models.User{}).Where("game_id IS NOT NULL").Update("game_id", nil)
+	log.Println("Cleared games from ", res.RowsAffected, " users")
+
+	// Delete all games
+	res = db.Model(&models.Game{}).Where("playing", false).Preload("Players").Delete(&models.Game{})
+	log.Println("Deleted ", res.RowsAffected, " orphan games")
 }
 
 // MigrateDatabase migrates the database.
 func MigrateDatabase(db *gorm.DB) error {
 	err := db.AutoMigrate(&models.Game{}, &models.User{}, &models.Session{})
-	seed(db)
+	delOrphan(db)
 	return err
 }
