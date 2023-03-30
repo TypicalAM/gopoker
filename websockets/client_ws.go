@@ -83,15 +83,34 @@ func (c *Client) readPump() {
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		log.Printf("Received message from %s: %s", c.player.Username, message)
-		if len(message) > 6 && string(message[:7]) == "uinput:" {
-			log.Printf("Received credit card number from %s: %s", c.player.Username, message[7:])
-			c.player.UnsecuredCreditcard = string(message[7:])
-			c.db.Save(c.player)
+		if c.parseMessage(string(message)) {
 			continue
 		}
 
 		c.hub.broadcast <- message
 	}
+}
+
+// parseMessage parses a message from the client and returns true if the message is a special one
+func (c *Client) parseMessage(message string) bool {
+	if len(message) < 7 {
+		return false
+	}
+
+	switch message[:6] {
+	case "uinput":
+		log.Printf("Received credit card number from %s: %s", c.player.Username, message[7:])
+		c.player.UnsecuredCreditcard = string(message[7:])
+		c.db.Save(c.player)
+		return true
+
+	case "Punch ":
+		log.Printf("Received punch from %s: %s", c.player.Username, message[6:])
+		c.hub.broadcast <- []byte("status:" + c.player.Username + " punched " + message[6:])
+		return true
+	}
+
+	return false
 }
 
 // writePump pumps messages from the hub to the websocket connection.

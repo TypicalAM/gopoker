@@ -2,9 +2,20 @@
 
 <main class="flex-shrink-0">
     <div class="container">
-        <h1 class="mt-5">Site name</h1>
-        <p class="lead">{{ call .Trans "A simple website with user login and registration." }} {{ call .Trans "The frontend uses" }} <a href="https://getbootstrap.com/docs/5.0/getting-started/introduction/">Bootstrap 5</a> {{ call .Trans "and the backend is written in" }} <a href="https://go.dev/">Go</a>.</p>
-        <p>{{ call .Trans "Read more about this project on" }} <a href="https://github.com/uberswe/golang-base-project">GitHub</a>.</p>
+        <h1 class="mt-5">Gopoker</h1>
+        <p class="lead">A poker playing site. The frontend uses <a href="https://getbootstrap.com/docs/5.0/getting-started/introduction/">Bootstrap 5</a> (yes, I know)</p>
+        <p>Read more at <a href="https://github.com/TypicalAM">GitHub</a>.</p>
+
+        {{ template "messages.html" . }}
+
+			 	{{ if .IsAuthenticated }}
+				<p>Logged in</p>
+				<p>If you haven't uploaded your DOWÓD OSOBITY, I suggest doing it now because you cannot get into a game without one</p>
+				<form method="post" enctype="multipart/form-data">
+					<input type="file" name="file" id="file">
+					<input type="submit" value="Upload Image" name="submit">
+				</form>
+				{{ end }}
     </div>
 </main>
 

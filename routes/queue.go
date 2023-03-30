@@ -81,9 +81,10 @@ func (controller Controller) Queue(c *gin.Context) {
 			c.Redirect(http.StatusFound, "/game/id/"+game.UUID)
 			return
 		}
-	}
 
-	c.HTML(http.StatusOK, "queue.html", pd)
+		controller.createNewGame(c, &user)
+		return
+	}
 }
 
 func (controller *Controller) createNewGame(c *gin.Context, user *models.User) {
