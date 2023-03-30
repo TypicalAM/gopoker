@@ -83,6 +83,7 @@ func Run() {
 	noAuthPost.POST("/register", controller.RegisterPost)
 
 	auth := r.Group("/game")
+	auth.Use(middleware.Throttle(cfg.RequestsPerMin))
 	auth.Use(middleware.Auth())
 	auth.Use(middleware.Sensitive())
 	auth.GET("/lobby", controller.Lobby)
