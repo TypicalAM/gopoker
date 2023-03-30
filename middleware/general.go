@@ -1,6 +1,8 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 // General gandles the default headers
 func General() gin.HandlerFunc {

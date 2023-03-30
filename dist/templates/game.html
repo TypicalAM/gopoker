@@ -6,7 +6,20 @@
 
         {{ template "messages.html" . }}
 
+				<table class="table table-striped">
+				<thead>
+					<tr>
+						<th scope="col">Message</th>
+					</tr>
+				</thead>
+				<tbody id="table_body">
+					<tr><td>test</td></tr>
+					<tr><td>test</td></tr>
+				</tbody>
+			</table>
     </div>
 </main>
+
+<script src="/assets/js/game.js"></script>
 
 {{ template "footer.html" . }}

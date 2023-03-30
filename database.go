@@ -34,6 +34,6 @@ func delOrphan(db *gorm.DB) {
 // MigrateDatabase migrates the database.
 func MigrateDatabase(db *gorm.DB) error {
 	err := db.AutoMigrate(&models.Game{}, &models.User{}, &models.Session{})
-	delOrphan(db)
+	//delOrphan(db)
 	return err
 }

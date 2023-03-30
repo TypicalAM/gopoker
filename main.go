@@ -9,12 +9,14 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/middleware"
 	"github.com/TypicalAM/gopoker/routes"
+	"github.com/TypicalAM/gopoker/websockets"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 )
 
 // staticFS is an embedded file system that contains the static files
+//
 //go:embed dist/*
 var staticFS embed.FS
 
@@ -69,7 +71,9 @@ func Run() {
 	r.Use(middleware.Session(db))
 	r.Use(middleware.General())
 
-	controller := routes.New(db, cfg)
+	hub := websockets.NewHub()
+	go hub.Run()
+	controller := routes.New(db, hub, cfg)
 	r.Any("/", controller.Index)
 
 	noAuth := r.Group("/")
@@ -89,6 +93,7 @@ func Run() {
 	auth.GET("/lobby/queue", controller.Queue)
 	auth.GET("/id/:id", controller.Game)
 	auth.GET("/id/:id/leave", controller.LeaveGame)
+	auth.GET("/id/:id/ws", controller.GameWS)
 
 	if err = r.Run(cfg.ListenPort); err != nil {
 		log.Fatalln(err)
