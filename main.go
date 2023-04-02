@@ -74,7 +74,7 @@ func Run() {
 	hub := websockets.NewHub()
 	go hub.Run()
 	controller := routes.New(db, hub, cfg)
-	r.Any("/", controller.Index)
+	r.GET("/", controller.Index)
 
 	noAuth := r.Group("/")
 	noAuth.Use(middleware.NoAuth())

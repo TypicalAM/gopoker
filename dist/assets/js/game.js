@@ -2,8 +2,6 @@ window.onload = main;
 
 function main() {
 	let conn;
-	let lastMessage = "";
-	let secondToLastMessage = "";
 	let table = document.getElementById("table_body")
 
 	if (window["WebSocket"]) {
@@ -32,49 +30,37 @@ function main() {
 
 	function handleMessage(msg) {
 		console.log("Received message: " + msg);
-		if (msg === lastMessage || msg === secondToLastMessage) {
-			console.log("Ignoring duplicate message.");
-			return;
-		}
-
-		secondToLastMessage = lastMessage;
-		lastMessage = msg;
 
 		let row = table.insertRow();
 		let cell = row.insertCell();
 
-		switch (msg.substring(0, 6)) {
-			case 'action':
-				let availableActions = msg.substring(7).split(',');
-				cell.innerHTML = "<b>Available actions:</b>";
-				for (let i = 0; i < availableActions.length; i++) {
-					let action = availableActions[i];
-					let button = document.createElement("button");
-					button.innerHTML = action;
-					button.onclick = function() { conn.send(action); };
-					cell.appendChild(button);
-				}
+		parsedMsg = JSON.parse(msg);
+		switch (parsedMsg.type) {
+			case "status":
+				cell.innerHTML = "<b>Status: " + parsedMsg.data + "</b>";
 				break;
 
-			case 'status':
-				let statusMsg = msg.substring(7);
-				cell.innerHTML = "<b>Status:</b> " + statusMsg;
-				break;
-
-			case 'uinput':
-				let inputMsg = msg.substring(7);
-				textInput = document.createElement("input");
-				textInput.type = "text";
-				textInput.placeholder = inputMsg;
+			case "input":
+				input = document.createElement("input");
+				input.type = "text";
+				input.placeholder = parsedMsg.data;
 				button = document.createElement("button");
 				button.innerHTML = "Send";
-				button.onclick = function() { conn.send("uinput:"+textInput.value); };
-				cell.appendChild(textInput);
+				button.onclick = function() {
+					messageObj = {type: "action", data: input.value};
+					conn.send(JSON.stringify(messageObj));
+					input.value = "";
+				}
+				cell.appendChild(input);
 				cell.appendChild(button);
 				break;
 
+			case "start":
+				cell.innerHTML = "<b>Game started!</b>";
+				break;
+
 			default:
-				cell.innerHTML = "Received a stupid message, ignoring it.";
+				cell.innerHTML = "<b>Unknown message type: " + parsedMsg.type + "</b>";
 				break;
 		}
 	}

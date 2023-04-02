@@ -2,9 +2,10 @@ package websockets
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/TypicalAM/gopoker/models"
@@ -36,7 +37,6 @@ var (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	// TODO: Check the origin of the request
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -44,27 +44,15 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	hub *Hub
-	db  *gorm.DB
-
-	// player is the player that this client is representing
+	hub    *Hub
+	db     *gorm.DB
 	player *models.User
-
-	// game is the game that this client is in
-	game *models.Game
-
-	// The websocket connection.
-	conn *websocket.Conn
-
-	// Buffered channel of outbound messages.
-	send chan []byte
+	game   *models.Game
+	conn   *websocket.Conn
+	send   chan GameMessage
 }
 
 // readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -81,49 +69,70 @@ func (c *Client) readPump() {
 			}
 			break
 		}
+
+		// Message handling
+		log.Println(fmt.Sprintf("[%s] Received message from %s", c.game.UUID, c.player.Username))
+
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		log.Printf("Received message from %s: %s", c.player.Username, message)
-		if c.parseMessage(string(message)) {
+		gameMsg := c.parseMessage(message)
+		if gameMsg == nil {
+			log.Println(fmt.Sprintf("[%s] Invalid message from %s", c.game.UUID, c.player.Username))
 			continue
 		}
 
-		c.hub.broadcast <- message
+		log.Println(fmt.Sprintf("[%s] Message type: %s", c.game.UUID, gameMsg.Type))
+		log.Println(fmt.Sprintf("[%s] Message data: %s", c.game.UUID, gameMsg.Data))
+
+		game := c.hub.games[c.game.UUID]
+		response := game.handleMessage(c, gameMsg)
+		if response == nil {
+			log.Println(fmt.Sprintf("[%s] No response from game", c.game.UUID))
+			continue
+		}
+
+		log.Println(fmt.Sprintf("[%s] Response type: %s", c.game.UUID, response.Type))
+		log.Println(fmt.Sprintf("[%s] Response data: %s", c.game.UUID, response.Data))
+
+		c.hub.broadcast <- *response
 	}
 }
 
-// parseMessage parses a message from the client and returns true if the message is a special one
-func (c *Client) parseMessage(message string) bool {
-	if len(message) < 7 {
-		return false
+// msgType is the type of the game message.
+type msgType string
+
+const (
+	msgStatus msgType = "status"
+	msgInput = "input"
+	msgStart = "start"
+	msgAction = "action"
+)
+
+// GameMessage is a message that is used to communicate between the player and the game server.
+type GameMessage struct {
+	Type msgType `json:"type"`
+	Data string  `json:"data"`
+}
+
+// isGameMessage checks if the message is a game message.
+func (c *Client) parseMessage(msgBytes []byte) *GameMessage {
+	var gameMsg GameMessage
+
+	// Check if the message is a game message.
+	if err := json.Unmarshal(msgBytes, &gameMsg); err != nil {
+		return nil
 	}
 
-	switch message[:6] {
-	case "uinput":
-		log.Printf("Received credit card number from %s: %s", c.player.Username, message[7:])
-		c.player.UnsecuredCreditcard = string(message[7:])
-		c.db.Save(c.player)
-		return true
-
-	case "Punch ":
-		log.Printf("Received punch from %s: %s", c.player.Username, message[6:])
-		c.hub.broadcast <- []byte("status:" + c.player.Username + " punched " + message[6:])
-		return true
-	}
-
-	return false
+	return &gameMsg
 }
 
 // writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
 func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
 	}()
+
 	for {
 		select {
 		case message, ok := <-c.send:
@@ -138,45 +147,36 @@ func (c *Client) writePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+
+			messageBytes, err := json.Marshal(message)
+			if err != nil {
+				log.Println("Couldn't marshal the message:", err)
+				return
+			}
+
+			w.Write(messageBytes)
 
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
-				w.Write(<-c.send)
+				messageBytes, err := json.Marshal(<-c.send)
+				if err != nil {
+					log.Println("Couldn't marshal the message:", err)
+					return
+				}
+
+				w.Write(messageBytes)
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
+
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
-			}
-
-			b := strings.Builder{}
-			b.WriteString("action:")
-			for i, player := range c.game.Players {
-				if player.ID == c.player.ID {
-					continue
-				}
-
-				b.WriteString("Punch ")
-				b.WriteString(player.Username)
-				if i < len(c.game.Players)-1 {
-					b.WriteString(",")
-				}
-			}
-
-			c.conn.WriteMessage(websocket.TextMessage, []byte(b.String()))
-
-			// Unsecure credit card sniff
-			b.Reset()
-			if strings.TrimSpace(c.player.UnsecuredCreditcard) == "" {
-				b.WriteString("uinput:Credit card number")
-				c.conn.WriteMessage(websocket.TextMessage, []byte(b.String()))
 			}
 		}
 	}
@@ -186,7 +186,7 @@ func (c *Client) writePump() {
 func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *models.User) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Println("Upgrade:", err)
+		log.Println("Couldn't upgrade the connection to a websocket connection:", err)
 		return
 	}
 
@@ -198,13 +198,11 @@ func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *mod
 		player: user,
 		game:   game,
 		conn:   conn,
-		send:   make(chan []byte, 256),
+		send:   make(chan GameMessage, 256),
 	}
 
 	client.hub.register <- client
 
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
 	go client.writePump()
 	go client.readPump()
 }
