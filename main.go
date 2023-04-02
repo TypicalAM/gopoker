@@ -94,7 +94,7 @@ func Run() {
 	auth.GET("/game/lobby/queue/", controller.Queue)
 	auth.GET("/game/id/:id/", controller.Game)
 	auth.GET("/game/id/:id/leave", controller.LeaveGame)
-	auth.GET("/game/id/:id/ws", controller.GameWS)
+	auth.GET("/game/id/:id/ws", controller.GameSocket)
 
 	if err = r.Run(cfg.ListenPort); err != nil {
 		log.Fatalln(err)

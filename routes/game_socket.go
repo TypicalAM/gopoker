@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GameWS handles the websocket connection for the game
-func (controller Controller) GameWS(c *gin.Context) {
+// GameSocket handles the websocket connection for the game
+func (controller Controller) GameSocket(c *gin.Context) {
 	pd := controller.DefaultPageData(c)
 	session := sessions.Default(c)
 

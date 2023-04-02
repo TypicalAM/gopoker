@@ -1,7 +1,6 @@
 package websockets
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -71,29 +70,20 @@ func (c *Client) readPump() {
 		}
 
 		// Message handling
-		log.Println(fmt.Sprintf("[%s] Received message from %s", c.game.UUID, c.player.Username))
-
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		gameMsg := c.parseMessage(message)
-		if gameMsg == nil {
+		var gameMsg *GameMessage
+		if err := json.Unmarshal(message, &gameMsg); err != nil {
 			log.Println(fmt.Sprintf("[%s] Invalid message from %s", c.game.UUID, c.player.Username))
+			log.Println(fmt.Sprintf("The following error occurred: %s", err))
 			continue
 		}
 
 		log.Println(fmt.Sprintf("[%s] Message type: %s", c.game.UUID, gameMsg.Type))
 		log.Println(fmt.Sprintf("[%s] Message data: %s", c.game.UUID, gameMsg.Data))
 
-		game := c.hub.games[c.game.UUID]
-		response := game.handleMessage(c, gameMsg)
-		if response == nil {
-			log.Println(fmt.Sprintf("[%s] No response from game", c.game.UUID))
-			continue
+		c.hub.broadcast <- GameMessageWithSender{
+			Message: *gameMsg,
+			Sender:  c,
 		}
-
-		log.Println(fmt.Sprintf("[%s] Response type: %s", c.game.UUID, response.Type))
-		log.Println(fmt.Sprintf("[%s] Response data: %s", c.game.UUID, response.Data))
-
-		c.hub.broadcast <- *response
 	}
 }
 
@@ -102,9 +92,9 @@ type msgType string
 
 const (
 	msgStatus msgType = "status"
-	msgInput = "input"
-	msgStart = "start"
-	msgAction = "action"
+	msgInput          = "input"
+	msgStart          = "start"
+	msgAction         = "action"
 )
 
 // GameMessage is a message that is used to communicate between the player and the game server.
@@ -113,16 +103,10 @@ type GameMessage struct {
 	Data string  `json:"data"`
 }
 
-// isGameMessage checks if the message is a game message.
-func (c *Client) parseMessage(msgBytes []byte) *GameMessage {
-	var gameMsg GameMessage
-
-	// Check if the message is a game message.
-	if err := json.Unmarshal(msgBytes, &gameMsg); err != nil {
-		return nil
-	}
-
-	return &gameMsg
+// GameMessageWithSender is a message that is sent to the hub to be broadcasted.
+type GameMessageWithSender struct {
+	Message GameMessage
+	Sender  *Client
 }
 
 // writePump pumps messages from the hub to the websocket connection.

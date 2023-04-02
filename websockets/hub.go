@@ -1,41 +1,42 @@
 package websockets
 
 import (
-	"fmt"
 	"log"
 	"time"
 )
 
-// statusInterval is the interval at which the hub will send status updates.
-const statusInterval = 10 * time.Second
+var (
+	// thankYouMsg is the message sent to the client every thankYouMsgInterval.
+	thankYouMsg = GameMessage{
+		Type: msgStatus,
+		Data: "Thank you for playing!",
+	}
 
-// thankYouMessage is the message that will be sent to clients.
-var thankYouMsg = GameMessage{
-	Type: msgStatus,
-	Data: "Thank you for playing!",
-}
+	// thankYouMsgInterval is the interval at which the thank you message is sent.
+	thankYouMsgInterval = 50 * time.Second
+)
 
-// Hub maintains the set of active clients and broadcasts messages.
+// Hub maintains the set of active clients and game servers, it also broadcasts messages to the clients.
 type Hub struct {
-	games      map[string]*Game
-	broadcast  chan GameMessage
+	games      gameStore
+	broadcast  chan GameMessageWithSender
 	register   chan *Client
 	unregister chan *Client
 }
 
-// NewHub creates a new Hub instance.
+// NewHub creates a new hub.
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan GameMessage),
+		games:      newGameStore(),
+		broadcast:  make(chan GameMessageWithSender, 256),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		games:      make(map[string]*Game),
 	}
 }
 
 // Run starts the hub.
 func (h *Hub) Run() {
-	ticker := time.NewTicker(statusInterval)
+	ticker := time.NewTicker(thankYouMsgInterval)
 	defer func() {
 		ticker.Stop()
 	}()
@@ -48,75 +49,74 @@ func (h *Hub) Run() {
 		case client := <-h.unregister:
 			h.unregisterClient(client)
 
-		case message := <-h.broadcast:
-			h.broadcastMessage(message)
+		case gameMsg := <-h.broadcast:
+			h.handleMessage(gameMsg.Sender, &gameMsg.Message)
 
 		case <-ticker.C:
-			h.sendThankYouMessages()
+			h.sendThankYouMsg()
 		}
 	}
 }
 
-// registerClient adds the client to the hub.
+// registerClient registers a client and creates a new game if it doesn't exist.
 func (h *Hub) registerClient(client *Client) {
-	// If the game already exists, we add the client to the game.
-	if game, ok := h.games[client.game.UUID]; ok {
-		log.Println(fmt.Sprintf("[%s] Adding player %s to game", client.game.UUID, client.player.Username))
-		game.Players = append(game.Players, client)
-		h.games[client.game.UUID] = game
-		return
+	game, ok := h.games.load(client.game.UUID)
+	if !ok {
+		game = newGame(h, client.game.UUID)
+		go game.run()
 	}
 
-	// If the game doesn't exist, we create a new one.
-	log.Println(fmt.Sprintf("[%s] Creating new game and adding player %s", client.game.UUID, client.player.Username))
-	h.games[client.game.UUID] = newGame(client.game.UUID, client)
+	game.addPlayer(client)
+	h.games.save(game)
 }
 
-// unregisterClient removes the client from the hub and closes the game if needed.
+// unregisterClient unregisters a client and removes the game if it doesn't have any clients.
 func (h *Hub) unregisterClient(client *Client) {
-	// If the game doesn't exist, we do nothing.
-	if _, ok := h.games[client.game.UUID]; !ok {
+	game, ok := h.games.load(client.game.UUID)
+	if !ok {
 		return
 	}
 
-	// We have to close the client's send channel.
-	close(client.send)
-
-	// If the game exists, we remove the client from the game.
-	game := h.games[client.game.UUID]
-	for i, c := range game.Players {
-		if c == client {
-			game.Players = append(game.Players[:i], game.Players[i+1:]...)
-			break
-		}
-	}
-
-	// If the game is empty, we close the game.
+	game.removePlayer(client)
 	if len(game.Players) == 0 {
-		delete(h.games, client.game.UUID)
+		h.games.delete(client.game.UUID)
+	}
+}
+
+// handleMessage handles a game message sent by a client.
+func (h *Hub) handleMessage(client *Client, gameMsg *GameMessage) {
+	game, ok := h.games.load(client.game.UUID)
+	if !ok {
 		return
 	}
 
-	// If the game is not empty, we update the game.
-	h.games[client.game.UUID] = game
-}
+	response, reply := game.handleMessage(client, gameMsg)
+	if reply {
+		// Send the response to the sender only.
+		select {
+		case client.send <- response:
+		default:
+			h.unregisterClient(client)
+		}
 
-// broadcastMessage sends the message to all clients.
-func (h *Hub) broadcastMessage(message GameMessage) {
-	for _, game := range h.games {
-		for _, client := range game.Players {
-			select {
-			case client.send <- message:
-			default:
-				h.unregisterClient(client)
-			}
+		// Send the response to the sender only.
+		return
+	}
+
+	// Send the response to all the clients.
+	for _, client := range game.Players {
+		select {
+		case client.send <- response:
+		default:
+			h.unregisterClient(client)
 		}
 	}
 }
 
-// sendThankYouMessages sends a thank you message to all clients.
-func (h *Hub) sendThankYouMessages() {
-	for _, game := range h.games {
+// sendThankYouMsg sends a thank you message to all the clients.
+func (h *Hub) sendThankYouMsg() {
+	log.Println("Sending thank you message to all the clients")
+	for _, game := range h.games.loadAll() {
 		for _, client := range game.Players {
 			select {
 			case client.send <- thankYouMsg:
