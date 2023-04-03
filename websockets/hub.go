@@ -90,27 +90,7 @@ func (h *Hub) handleMessage(client *Client, gameMsg *GameMessage) {
 		return
 	}
 
-	response, reply := game.handleMessage(client, gameMsg)
-	if reply {
-		// Send the response to the sender only.
-		select {
-		case client.send <- response:
-		default:
-			h.unregisterClient(client)
-		}
-
-		// Send the response to the sender only.
-		return
-	}
-
-	// Send the response to all the clients.
-	for _, client := range game.Players {
-		select {
-		case client.send <- response:
-		default:
-			h.unregisterClient(client)
-		}
-	}
+	game.handleMessage(client, gameMsg)
 }
 
 // sendThankYouMsg sends a thank you message to all the clients.

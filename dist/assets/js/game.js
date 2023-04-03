@@ -3,6 +3,7 @@ window.onload = main;
 function main() {
 	let conn;
 	let table = document.getElementById("table_body")
+	let lastMessage = "";
 
 	if (window["WebSocket"]) {
 		let target = "ws://" + window.location.href.substring(7) + "ws";
@@ -29,6 +30,13 @@ function main() {
 	}
 
 	function handleMessage(msg) {
+		if (msg == lastMessage) {
+			console.log("Duplicate message received, ignoring.");
+			return;
+		}
+
+		lastMessage = msg;
+
 		console.log("Received message: " + msg);
 
 		let row = table.insertRow();
@@ -41,18 +49,23 @@ function main() {
 				break;
 
 			case "input":
-				input = document.createElement("input");
-				input.type = "text";
-				input.placeholder = parsedMsg.data;
-				button = document.createElement("button");
-				button.innerHTML = "Send";
-				button.onclick = function() {
-					messageObj = {type: "action", data: input.value};
-					conn.send(JSON.stringify(messageObj));
-					input.value = "";
+				dataSplit = parsedMsg.data.split(":");
+				for (let i = 0; i < dataSplit.length; i++) {
+					let button = document.createElement("button");
+					button.innerHTML = dataSplit[i];
+					button.onclick = function() {
+						let messageObj;
+						if (dataSplit[i] == "raise") {
+							let raiseAmount = prompt("How much would you like to raise by?");
+							messageObj = { type: "action", data: JSON.stringify({ type: dataSplit[i], data: raiseAmount }) };
+						} else {
+							messageObj = { type: "action", data: JSON.stringify({ type: dataSplit[i], data: "" }) };
+						}
+
+						conn.send(JSON.stringify(messageObj));
+					}
+					cell.appendChild(button);
 				}
-				cell.appendChild(input);
-				cell.appendChild(button);
 				break;
 
 			case "start":

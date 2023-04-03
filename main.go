@@ -75,6 +75,7 @@ func Run() {
 	go hub.Run()
 	controller := routes.New(db, hub, cfg)
 	r.GET("/", controller.Index)
+	r.POST("/", controller.Index)
 
 	noAuth := r.Group("/")
 	noAuth.Use(middleware.NoAuth())
