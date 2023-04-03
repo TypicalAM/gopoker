@@ -72,9 +72,67 @@ function main() {
 				cell.innerHTML = "<b>Game started!</b>";
 				break;
 
+			case "state":
+				console.log("We received a new state message!");
+				updateState(JSON.parse(parsedMsg.data))
+				break;
+
+			case "players":
+				console.log("We received a new players message!");
+				console.log(JSON.parse(parsedMsg.data));
+				break;
+
 			default:
 				cell.innerHTML = "<b>Unknown message type: " + parsedMsg.type + "</b>";
 				break;
+		}
+	}
+
+	function updateState(stateData) {
+		let allPlayersDiv = document.getElementById("player_div");
+		allPlayersDiv.innerHTML = "";
+
+		console.log("Hello, from the start of the function");
+		console.log(stateData);
+		for (i = 0; i < stateData.Usernames.length; i++) {
+			console.log("Hello from the inside, the user is " + stateData.Usernames[i]);
+			let playerDiv = document.createElement("div");
+			playerDiv.classList.add("alert");
+			playerDiv.classList.add(stateData.Turn == i ? "alert-success" : "alert-info");
+			playerDiv.classList.add("player");
+
+			let leftHalf = document.createElement("div");
+			leftHalf.classList.add("left-half");
+			let usernameText = document.createElement("p");
+			usernameText.innerHTML = stateData.Usernames[i];
+			leftHalf.appendChild(usernameText);
+			playerDiv.appendChild(leftHalf);
+
+			let rightHalf = document.createElement("div");
+			rightHalf.classList.add("right-half");
+			let firstCard = document.createElement("img");
+			firstCard.classList.add("playingcard");
+			if (stateData.Hands[i][0] == undefined) {
+				firstCard.src = "/assets/images/cards/As.png"
+			} else {
+				firstCard.src = "/assets/images/cards/" + stateData.Hands[i][0] + ".png"
+			}
+			console.log(stateData.Hands[i][0]);
+			rightHalf.appendChild(firstCard);
+
+			let secondCard = document.createElement("img");
+			secondCard.classList.add("playingcard");
+			if (stateData.Hands[i][1] == undefined) {
+				secondCard.src = "/assets/images/cards/As.png"
+			} else {
+				secondCard.src = "/assets/images/cards/" + stateData.Hands[i][1] + ".png"
+			}
+			console.log(stateData.Hands[i][1]);
+			rightHalf.appendChild(secondCard);
+
+			playerDiv.appendChild(rightHalf);
+
+			allPlayersDiv.appendChild(playerDiv);
 		}
 	}
 }

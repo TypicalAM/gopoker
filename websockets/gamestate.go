@@ -25,10 +25,10 @@ const (
 
 // GameState is the state of the game.
 type GameState struct {
-	Started bool
-	Round   round
-	Waiting bool
-
+	Started    bool
+	Round      round
+	Waiting    bool
+	Usernames  []string
 	Cards      []poker.Card
 	CurrentBet int
 	Turn       int

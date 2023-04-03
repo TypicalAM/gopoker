@@ -45,7 +45,10 @@ func (g *Game) run() {
 // checkWaiting checks if the game is waiting for a player to make a move.
 func (g *Game) checkWaiting() {
 	g.StateMu.Lock()
-	defer g.StateMu.Unlock()
+	defer func() {
+		g.broadcastState()
+		g.StateMu.Unlock()
+	}()
 
 	if !g.State.Started {
 		return
@@ -102,6 +105,8 @@ func (g *Game) startGame() {
 	g.sendToPlayer(0, msgStatus, fmt.Sprintf("You have %d chips", g.State.Assets[0]))
 	g.sendToPlayer(0, msgInput, "fold:call:raise")
 	g.State.Waiting = true
+
+	g.broadcastState()
 }
 
 // gameActionType is the type of game action.
@@ -149,7 +154,10 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 		}
 
 		g.StateMu.Lock()
-		defer g.StateMu.Unlock()
+		defer func() {
+			g.broadcastState()
+			g.StateMu.Unlock()
+		}()
 
 		switch action.Type {
 		case actionDraw:
@@ -335,7 +343,10 @@ func (g *Game) removePlayer(player *Client) {
 
 // sendToPlayer sends a message to a player.
 func (g *Game) sendToPlayer(ind int, messageType msgType, msgData string) {
-	log.Printf("[%s] game: %s", g.Players[ind].player.Username, msgData)
+	if messageType != msgState {
+		log.Printf("[%s] game: %s", g.Players[ind].player.Username, msgData)
+	}
+
 	msg := GameMessage{
 		Type: messageType,
 		Data: msgData,
@@ -362,5 +373,39 @@ func (g *Game) sendToAllPlayers(messageType msgType, msgData string) {
 		default:
 			g.hub.unregister <- player
 		}
+	}
+}
+
+// broadcastState sends a periodic "state" message to all players in the game. This is used to keep the players
+// in sync with the game state.
+func (g *Game) broadcastState() {
+	if !g.State.Started {
+		return
+	}
+
+	safeState := g.State
+	safeHands := make([][]poker.Card, len(g.State.Hands))
+	copy(safeHands, g.State.Hands)
+
+	// Make sure that this field is not copied
+	safeState.Hands = make([][]poker.Card, len(g.State.Hands))
+	for i := range g.State.Hands {
+		safeState.Hands[i] = []poker.Card{}
+	}
+
+	// Show the usernames of the players.
+	safeState.Usernames = []string{}
+	for _, player := range g.Players {
+		safeState.Usernames = append(safeState.Usernames, player.player.Username)
+	}
+
+	// Show the cards of the players that are still in the game.
+	for i := range g.Players {
+		safeState.Hands[i] = safeHands[i]
+
+		stateBytes, _ := json.Marshal(safeState)
+		g.sendToPlayer(i, msgState, string(stateBytes))
+
+		safeState.Hands[i] = []poker.Card{}
 	}
 }

@@ -91,10 +91,11 @@ func (c *Client) readPump() {
 type msgType string
 
 const (
-	msgStatus msgType = "status"
-	msgInput          = "input"
-	msgStart          = "start"
-	msgAction         = "action"
+	msgStatus  msgType = "status"
+	msgState           = "state"
+	msgInput           = "input"
+	msgStart           = "start"
+	msgAction          = "action"
 )
 
 // GameMessage is a message that is used to communicate between the player and the game server.
