@@ -95,6 +95,7 @@ const (
 	msgState           = "state"
 	msgInput           = "input"
 	msgStart           = "start"
+	msgGameEnd         = "end"
 	msgAction          = "action"
 )
 

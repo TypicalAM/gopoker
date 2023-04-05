@@ -77,6 +77,7 @@ func (h *Hub) unregisterClient(client *Client) {
 		return
 	}
 
+	// TODO: Bug: If a client disconnects and reconnects, the game is deleted.
 	game.removePlayer(client)
 	if len(game.Players) == 0 {
 		h.games.delete(client.game.UUID)

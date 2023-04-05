@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -62,17 +63,21 @@ func (g *Game) checkWaiting() {
 // startGame starts the game.
 func (g *Game) startGame() {
 	g.StateMu.Lock()
-	defer g.StateMu.Unlock()
+	defer func() {
+		g.broadcastState()
+		g.StateMu.Unlock()
+	}()
 
 	// Create the game state.
 	g.State = GameState{
-		Started: true,
-		Round:   preFlop,
-		Waiting: true,
-		Bets:    make([]int, len(g.Players)),
-		Actions: make([]action, len(g.Players)),
-		Assets:  make([]int, len(g.Players)),
-		Hands:   make([][]poker.Card, len(g.Players)),
+		Started:        true,
+		Round:          preFlop,
+		Waiting:        true,
+		Bets:           make([]int, len(g.Players)),
+		Actions:        make([]action, len(g.Players)),
+		Assets:         make([]int, len(g.Players)),
+		Hands:          make([][]poker.Card, len(g.Players)),
+		CommunityCards: []poker.Card{},
 	}
 
 	for i := range g.Players {
@@ -105,16 +110,13 @@ func (g *Game) startGame() {
 	g.sendToPlayer(0, msgStatus, fmt.Sprintf("You have %d chips", g.State.Assets[0]))
 	g.sendToPlayer(0, msgInput, "fold:call:raise")
 	g.State.Waiting = true
-
-	g.broadcastState()
 }
 
 // gameActionType is the type of game action.
 type gameActionType string
 
 const (
-	actionDraw  gameActionType = "draw"
-	actionFold                 = "fold"
+	actionFold  gameActionType = "fold"
 	actionCall                 = "call"
 	actionRaise                = "raise"
 )
@@ -148,38 +150,18 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] said %s", client.player.Username, gameMsg.Data))
 
 	case msgAction:
-		var action gameAction
-		if err := json.Unmarshal([]byte(gameMsg.Data), &action); err != nil {
-			g.sendToPlayer(index, msgStatus, fmt.Sprintf("Invalid action: %s", err))
-		}
-
 		g.StateMu.Lock()
 		defer func() {
 			g.broadcastState()
 			g.StateMu.Unlock()
 		}()
 
+		var action gameAction
+		if err := json.Unmarshal([]byte(gameMsg.Data), &action); err != nil {
+			g.sendToPlayer(index, msgStatus, fmt.Sprintf("Invalid action: %s", err))
+		}
+
 		switch action.Type {
-		case actionDraw:
-			cardAmount, err := strconv.Atoi(action.Data)
-			if err != nil {
-				g.sendToPlayer(index, msgStatus, fmt.Sprintf("Invalid card amount: %s", err))
-			}
-
-			// We have to draw one card at a time because the guy who wrote the library
-			// doesn't return the error from the draw method for some reason. The library was also updated
-			// 5 years ago so I'm not sure if it's still maintained.
-			var cards []poker.Card
-			for i := 0; i < cardAmount; i++ {
-				if g.Deck.Empty() {
-					g.sendToPlayer(index, msgStatus, fmt.Sprintf("Tried to draw %d cards but the deck is empty", cardAmount))
-				}
-
-				cards = append(cards, g.Deck.Draw(1)...)
-			}
-
-			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] drew %s", client.player.Username, cards))
-
 		case actionFold:
 			if g.State.Waiting && g.State.Turn == index {
 				g.State.Actions[index] = fold
@@ -262,11 +244,8 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 
 	// If we reached this point, it means that all players have taken an action.
 	if g.State.Round == river {
-		// TODO: Implement the showdown.
-		g.sendToAllPlayers(msgStatus, "The game is over!!!")
-		g.sendToAllPlayers(msgStatus, "The game is over!!!")
-		g.sendToAllPlayers(msgStatus, "The game is over!!!")
-		g.State.Waiting = false
+		g.endGame()
+
 		return
 	}
 
@@ -280,6 +259,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	// If someone folded, we need to remove them from the game.
 	for i := 0; i < len(g.Players); i++ {
 		if g.State.Actions[i] == fold {
+			fmt.Println("Folded:", g.Players[i].player.Username)
 			g.sendToPlayer(i, msgStatus, "You folded, you're out of the game")
 			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] folded, they're out of the game", g.Players[i].player.Username))
 			g.Players = append(g.Players[:i], g.Players[i+1:]...)
@@ -290,30 +270,41 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 		}
 	}
 
+	g.State.Actions = make([]action, len(g.Players))
+	g.State.Bets = make([]int, len(g.Players))
+
 	// If there's only one player left, we need to end the game.
 	if len(g.Players) == 1 {
 		g.State.Assets[0] += g.State.TotalBets
 		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[0].player.Username))
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[0].player.Username, g.State.Assets[0]))
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[0].player.Username, g.State.Assets[0]+g.State.TotalBets))
 		g.State.Waiting = false
+
+		for i := 0; i < len(g.Players); i++ {
+			g.State.Usernames = append(g.State.Usernames, g.Players[i].player.Username)
+		}
+
+		stateBytes, _ := json.Marshal(g.State)
+		g.sendToAllPlayers(msgState, string(stateBytes))
+		g.sendToAllPlayers(msgGameEnd, fmt.Sprintf("%d:%s", 0, ""))
 		return
 	}
 
 	switch g.State.Round {
 	case flop:
 		g.sendToAllPlayers(msgStatus, "The flop is:")
-		g.State.Cards = append(g.State.Cards, g.Deck.Draw(3)...)
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.Cards))
+		g.State.CommunityCards = append(g.State.CommunityCards, g.Deck.Draw(3)...)
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.CommunityCards))
 
 	case turn:
 		g.sendToAllPlayers(msgStatus, "The turn is:")
-		g.State.Cards = append(g.State.Cards, g.Deck.Draw(1)...)
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.Cards))
+		g.State.CommunityCards = append(g.State.CommunityCards, g.Deck.Draw(1)...)
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.CommunityCards))
 
 	case river:
 		g.sendToAllPlayers(msgStatus, "The river is:")
-		g.State.Cards = append(g.State.Cards, g.Deck.Draw(1)...)
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.Cards))
+		g.State.CommunityCards = append(g.State.CommunityCards, g.Deck.Draw(1)...)
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("%s", g.State.CommunityCards))
 	}
 
 	// Make sure that the first player knows that it's their turn
@@ -408,4 +399,36 @@ func (g *Game) broadcastState() {
 
 		safeState.Hands[i] = []poker.Card{}
 	}
+}
+
+// determineWinner determines the winner of the game.
+func (g *Game) endGame() {
+	bestHand := make([]poker.Card, 5)
+	bestRank := ""
+	bestScore := math.MaxInt32
+	bestPlayer := -1
+	for i := range g.Players {
+		hand, score, rank := getBestHand(g.State.Hands[i], g.State.CommunityCards)
+		if score < bestScore {
+			bestScore = score
+			bestRank = rank
+			bestHand = hand
+			bestPlayer = i
+		}
+	}
+
+	g.State.Waiting = false
+	g.State.Usernames = []string{}
+	for _, player := range g.Players {
+		g.State.Usernames = append(g.State.Usernames, player.player.Username)
+	}
+
+	stateBytes, _ := json.Marshal(g.State)
+	g.sendToAllPlayers(msgState, string(stateBytes))
+
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[bestPlayer].player.Username))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best rank is %s", bestRank))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best hand is %s", bestHand))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[bestPlayer].player.Username, g.State.Assets[bestPlayer]+g.State.TotalBets))
+	g.sendToAllPlayers(msgGameEnd, fmt.Sprintf("%d:%s", bestPlayer, bestHand))
 }
