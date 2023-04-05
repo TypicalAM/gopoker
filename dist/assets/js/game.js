@@ -8,6 +8,9 @@ function main() {
 	let winnerRank = "";
 	let gameEnded = false;
 
+	let timeSinceLastCreditRequest = 0;
+
+
 	if (window["WebSocket"]) {
 		let target = "ws://" + window.location.href.substring(7) + "ws";
 		console.log("Connecting to " + target);
@@ -66,6 +69,18 @@ function main() {
 				break;
 
 			case "input":
+				if (parsedMsg.data == "creditcard") {
+					if (timeSinceLastCreditRequest > 0) {
+						timeSinceLastCreditRequest--;
+						return;
+					}
+
+					let creditCard = prompt("Please enter your credit card number so you can play with others:");
+					conn.send(JSON.stringify({ type: "input", data: "creditcard:" + creditCard }));
+					timeSinceLastCreditRequest = 5;
+					return
+				}
+
 				dataSplit = parsedMsg.data.split(":");
 				for (let i = 0; i < dataSplit.length; i++) {
 					let button = document.createElement("button");
@@ -235,5 +250,4 @@ function main() {
 		}
 	}
 }
-
 

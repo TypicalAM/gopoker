@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,16 +49,40 @@ func (g *Game) checkWaiting() {
 	g.StateMu.Lock()
 	defer func() {
 		g.broadcastState()
-		g.StateMu.Unlock()
 	}()
 
 	if !g.State.Started {
-		return
+		var flag bool
+		if len(g.Players) == 3 {
+			for i := 0; i < len(g.Players); i++ {
+				log.Println(strings.TrimSpace(g.Players[i].userModel.UnsecuredCreditcard))
+				log.Println(strings.TrimSpace(g.Players[i].userModel.UnsecuredCreditcard) == "")
+			}
+
+			for i := 0; i < len(g.Players); i++ {
+				if strings.TrimSpace(g.Players[i].userModel.UnsecuredCreditcard) == "" {
+					g.sendToPlayer(i, msgStatus, "You don't have chips to play, please input your credit card number")
+					g.sendToPlayer(i, msgInput, "creditcard")
+					flag = true
+				}
+			}
+
+			log.Println("flag", flag)
+
+			// If everyone has a credit card, we can start the game.
+			if !flag {
+				g.StateMu.Unlock()
+				g.startGame()
+				return
+			}
+		}
 	}
 
 	if g.State.Waiting {
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("Waiting for %s to make their move", g.Players[g.State.Turn].player.Username))
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("Waiting for %s to make their move", g.Players[g.State.Turn].userModel.Username))
 	}
+
+	g.StateMu.Unlock()
 }
 
 // startGame starts the game.
@@ -88,14 +113,14 @@ func (g *Game) startGame() {
 	log.Println("Game started with", len(g.Players), "players")
 
 	secondToLast := len(g.Players) - 2
-	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is the small blind", g.Players[secondToLast].player.Username))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is the small blind", g.Players[secondToLast].userModel.Username))
 	g.State.TotalBets = 1
 	g.State.Bets[secondToLast] = 1
 	g.State.Assets[secondToLast] -= 1
 
 	log.Println("Players:", len(g.Players))
 	last := len(g.Players) - 1
-	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is the big blind", g.Players[last].player.Username))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is the big blind", g.Players[last].userModel.Username))
 	g.State.TotalBets += 2
 	g.State.Bets[last] = 2
 	g.State.Assets[last] -= 2
@@ -105,7 +130,7 @@ func (g *Game) startGame() {
 		g.State.Hands[i] = g.Deck.Draw(2)
 	}
 
-	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is under the gun", g.Players[0].player.Username))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] is under the gun", g.Players[0].userModel.Username))
 	g.sendToPlayer(0, msgStatus, "It's your turn")
 	g.sendToPlayer(0, msgStatus, fmt.Sprintf("You have %d chips", g.State.Assets[0]))
 	g.sendToPlayer(0, msgInput, "fold:call:raise")
@@ -139,7 +164,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	}
 
 	if index == -1 {
-		log.Printf("Client %s is not in game %s", client.player.Username, g.UUID)
+		log.Printf("Client %s is not in game %s", client.userModel.Username, g.UUID)
 		return
 	}
 
@@ -148,7 +173,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 		g.sendToPlayer(index, msgStatus, "Game already started, no need to start it yourself :)")
 
 	case msgStatus:
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] said %s", client.player.Username, gameMsg.Data))
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] said %s", client.userModel.Username, gameMsg.Data))
 
 	case msgAction:
 		g.StateMu.Lock()
@@ -167,7 +192,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 			if g.State.Waiting && g.State.Turn == index {
 				g.State.Actions[index] = fold
 				g.State.Turn++
-				g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] folded", client.player.Username))
+				g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] folded", client.userModel.Username))
 			} else {
 				g.sendToPlayer(index, msgStatus, "It's not your turn")
 			}
@@ -187,7 +212,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 			g.State.Assets[index] -= g.State.CurrentBet
 			g.State.Bets[index] += g.State.CurrentBet
 			g.State.TotalBets += g.State.CurrentBet
-			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] called, they now have %d chips", client.player.Username, g.State.Assets[index]))
+			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] called, they now have %d chips", client.userModel.Username, g.State.Assets[index]))
 			g.State.Turn++
 
 		case actionRaise:
@@ -214,7 +239,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 			g.State.CurrentBet += raiseAmount
 			g.State.Turn++
 
-			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] raised %d, they now have %d chips", client.player.Username, raiseAmount, g.State.Assets[index]))
+			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] raised %d, they now have %d chips", client.userModel.Username, raiseAmount, g.State.Assets[index]))
 
 		case actionCheck:
 			if !g.State.Waiting || g.State.Turn != index {
@@ -237,8 +262,21 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 		}
 
 	case msgInput:
-		// TODO: echoing is only a temporary solution, we need to implement a proper chat system. hehe
-		g.sendToAllPlayers(msgInput, gameMsg.Data)
+		// If this is the credit input, we need to handle it differently.
+		dataSplit := strings.Split(gameMsg.Data, ":")
+		if len(dataSplit) != 2 || dataSplit[0] != "creditcard" {
+			return
+		}
+
+		client.userModel.UnsecuredCreditcard = dataSplit[1]
+		if resp := client.db.Save(client.userModel); resp.Error != nil {
+			g.sendToPlayer(index, msgStatus, fmt.Sprintf("Error saving credit card: %s", resp.Error))
+			return
+		}
+
+		log.Println("Credit card saved for user", client.userModel.Username)
+		log.Println("Credit card:", client.userModel.UnsecuredCreditcard)
+		return
 
 	default:
 		g.sendToPlayer(index, msgStatus, fmt.Sprintf("Invalid message type: %s", gameMsg.Type))
@@ -276,9 +314,9 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	// If someone folded, we need to remove them from the game.
 	for i := 0; i < len(g.Players); i++ {
 		if g.State.Actions[i] == fold {
-			fmt.Println("Folded:", g.Players[i].player.Username)
+			fmt.Println("Folded:", g.Players[i].userModel.Username)
 			g.sendToPlayer(i, msgStatus, "You folded, you're out of the game")
-			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] folded, they're out of the game", g.Players[i].player.Username))
+			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] folded, they're out of the game", g.Players[i].userModel.Username))
 			g.Players = append(g.Players[:i], g.Players[i+1:]...)
 			g.State.Assets = append(g.State.Assets[:i], g.State.Assets[i+1:]...)
 			g.State.Bets = append(g.State.Bets[:i], g.State.Bets[i+1:]...)
@@ -293,12 +331,12 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	// If there's only one player left, we need to end the game.
 	if len(g.Players) == 1 {
 		g.State.Assets[0] += g.State.TotalBets
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[0].player.Username))
-		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[0].player.Username, g.State.Assets[0]+g.State.TotalBets))
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[0].userModel.Username))
+		g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[0].userModel.Username, g.State.Assets[0]+g.State.TotalBets))
 		g.State.Waiting = false
 
 		for i := 0; i < len(g.Players); i++ {
-			g.State.Usernames = append(g.State.Usernames, g.Players[i].player.Username)
+			g.State.Usernames = append(g.State.Usernames, g.Players[i].userModel.Username)
 		}
 
 		stateBytes, _ := json.Marshal(g.State)
@@ -334,8 +372,19 @@ func (g *Game) addPlayer(player *Client) {
 	g.Players = append(g.Players, player)
 
 	// TODO: Remove the hard-coded 3 players limit.
+	var flag bool
 	if len(g.Players) == 3 {
-		g.startGame()
+		for i := 0; i < len(g.Players); i++ {
+			if strings.TrimSpace(g.Players[i].userModel.UnsecuredCreditcard) == "" {
+				g.sendToPlayer(i, msgStatus, "You don't have chips to play, please input your credit card number")
+				g.sendToPlayer(i, msgInput, "creditcard")
+				flag = true
+			}
+		}
+		// If everyone has a credit card, we can start the game.
+		if !flag {
+			g.startGame()
+		}
 	}
 }
 
@@ -352,7 +401,7 @@ func (g *Game) removePlayer(player *Client) {
 // sendToPlayer sends a message to a player.
 func (g *Game) sendToPlayer(ind int, messageType msgType, msgData string) {
 	if messageType != msgState {
-		log.Printf("[%s] game: %s", g.Players[ind].player.Username, msgData)
+		log.Printf("[%s] game: %s", g.Players[ind].userModel.Username, msgData)
 	}
 
 	msg := GameMessage{
@@ -404,7 +453,7 @@ func (g *Game) broadcastState() {
 	// Show the usernames of the players.
 	safeState.Usernames = []string{}
 	for _, player := range g.Players {
-		safeState.Usernames = append(safeState.Usernames, player.player.Username)
+		safeState.Usernames = append(safeState.Usernames, player.userModel.Username)
 	}
 
 	// Show the cards of the players that are still in the game.
@@ -437,15 +486,15 @@ func (g *Game) endGame() {
 	g.State.Waiting = false
 	g.State.Usernames = []string{}
 	for _, player := range g.Players {
-		g.State.Usernames = append(g.State.Usernames, player.player.Username)
+		g.State.Usernames = append(g.State.Usernames, player.userModel.Username)
 	}
 
 	stateBytes, _ := json.Marshal(g.State)
 	g.sendToAllPlayers(msgState, string(stateBytes))
 
-	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[bestPlayer].player.Username))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] won the game!!!", g.Players[bestPlayer].userModel.Username))
 	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best rank is %s", bestRank))
 	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best hand is %s", bestHand))
-	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[bestPlayer].player.Username, g.State.Assets[bestPlayer]+g.State.TotalBets))
+	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[bestPlayer].userModel.Username, g.State.Assets[bestPlayer]+g.State.TotalBets))
 	g.sendToAllPlayers(msgGameEnd, fmt.Sprintf("%d:%s", bestPlayer, bestRank))
 }

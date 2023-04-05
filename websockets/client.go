@@ -43,12 +43,12 @@ var upgrader = websocket.Upgrader{
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
-	hub    *Hub
-	db     *gorm.DB
-	player *models.User
-	game   *models.Game
-	conn   *websocket.Conn
-	send   chan GameMessage
+	hub       *Hub
+	db        *gorm.DB
+	userModel *models.User
+	game      *models.Game
+	conn      *websocket.Conn
+	send      chan GameMessage
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -72,7 +72,7 @@ func (c *Client) readPump() {
 		// Message handling
 		var gameMsg *GameMessage
 		if err := json.Unmarshal(message, &gameMsg); err != nil {
-			log.Println(fmt.Sprintf("[%s] Invalid message from %s", c.game.UUID, c.player.Username))
+			log.Println(fmt.Sprintf("[%s] Invalid message from %s", c.game.UUID, c.userModel.Username))
 			log.Println(fmt.Sprintf("The following error occurred: %s", err))
 			continue
 		}
@@ -179,12 +179,12 @@ func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *mod
 	log.Println("New websocket connection, creating a client for", user.Username)
 
 	client := &Client{
-		hub:    hub,
-		db:     db,
-		player: user,
-		game:   game,
-		conn:   conn,
-		send:   make(chan GameMessage, 256),
+		hub:       hub,
+		db:        db,
+		userModel: user,
+		game:      game,
+		conn:      conn,
+		send:      make(chan GameMessage, 256),
 	}
 
 	client.hub.register <- client
