@@ -5,7 +5,7 @@ function main() {
 	let table = document.getElementById("table_body")
 	let lastMessage = "";
 	let winnerID = "";
-	let winnerHand = "";
+	let winnerRank = "";
 	let gameEnded = false;
 
 	if (window["WebSocket"]) {
@@ -50,14 +50,14 @@ function main() {
 				console.log(parsedMsg.data);
 				gameEnded = true;
 				winnerID = Number(parsedMsg.data.split(":")[0]);
-				winnerHand = parsedMsg.data.split(":")[1];
+				winnerRank = parsedMsg.data.split(":")[1];
 				let winnerDiv = document.getElementById("player_div").childNodes[winnerID + 1]; // Add 1 bcs of the community cards
 				winnerDiv.classList.remove("alert-info");
 				winnerDiv.classList.add("alert-success");
 				console.log(winnerDiv);
 
 				let text = winnerDiv.getElementsByClassName("left-half")[0].getElementsByTagName("p")[0];
-				text.innerHTML = text.innerHTML.split(" (")[0] + " (Winner)";
+				text.innerHTML = text.innerHTML.split(" (")[0] + " (Winner) - " + winnerRank + "";
 				cell.innerHTML = "<b>Game ended!</b>";
 				break;
 
@@ -214,7 +214,7 @@ function main() {
 			let firstCard = document.createElement("img");
 			firstCard.classList.add("playingcard");
 			if (stateData.Hands[i][0] == undefined) {
-				firstCard.src = "/assets/images/cards/As.png"
+				firstCard.src = "/assets/images/cards/back.png"
 			} else {
 				firstCard.src = "/assets/images/cards/" + stateData.Hands[i][0] + ".png"
 			}
@@ -223,7 +223,7 @@ function main() {
 			let secondCard = document.createElement("img");
 			secondCard.classList.add("playingcard");
 			if (stateData.Hands[i][1] == undefined) {
-				secondCard.src = "/assets/images/cards/As.png"
+				secondCard.src = "/assets/images/cards/back.png"
 			} else {
 				secondCard.src = "/assets/images/cards/" + stateData.Hands[i][1] + ".png"
 			}

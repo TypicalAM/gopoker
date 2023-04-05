@@ -119,6 +119,7 @@ const (
 	actionFold  gameActionType = "fold"
 	actionCall                 = "call"
 	actionRaise                = "raise"
+	actionCheck                = "check"
 )
 
 // gameAction is a game action sent by a client.
@@ -214,6 +215,22 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 			g.State.Turn++
 
 			g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] raised %d, they now have %d chips", client.player.Username, raiseAmount, g.State.Assets[index]))
+
+		case actionCheck:
+			if !g.State.Waiting || g.State.Turn != index {
+				g.sendToPlayer(index, msgStatus, "It's not your turn")
+				return
+			}
+
+			for i := 0; i < index; i++ {
+				if g.State.Actions[i] == call || g.State.Actions[i] == raise {
+					g.sendToPlayer(index, msgStatus, "You can't check, someone before you has raised or called")
+					return
+				}
+			}
+
+			g.State.Actions[index] = check
+			g.State.Turn++
 
 		default:
 			g.sendToPlayer(index, msgStatus, fmt.Sprintf("Invalid action type: %s", action.Type))
@@ -430,5 +447,5 @@ func (g *Game) endGame() {
 	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best rank is %s", bestRank))
 	g.sendToAllPlayers(msgStatus, fmt.Sprintf("The best hand is %s", bestHand))
 	g.sendToAllPlayers(msgStatus, fmt.Sprintf("[%s] has %d chips", g.Players[bestPlayer].player.Username, g.State.Assets[bestPlayer]+g.State.TotalBets))
-	g.sendToAllPlayers(msgGameEnd, fmt.Sprintf("%d:%s", bestPlayer, bestHand))
+	g.sendToAllPlayers(msgGameEnd, fmt.Sprintf("%d:%s", bestPlayer, bestRank))
 }
