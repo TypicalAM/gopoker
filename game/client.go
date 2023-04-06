@@ -1,4 +1,4 @@
-package websockets
+package game
 
 import (
 	"encoding/json"
@@ -41,6 +41,10 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func getUpgrader() *websocket.Upgrader {
+	return &upgrader
+}
+
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub       *Hub
@@ -49,6 +53,17 @@ type Client struct {
 	game      *models.Game
 	conn      *websocket.Conn
 	send      chan GameMessage
+}
+
+// NewClient creates a new client.
+func NewClient(hub *Hub, db *gorm.DB, conn *websocket.Conn, game *models.Game, userModel *models.User) *Client {
+	return &Client{
+		hub:       hub,
+		db:        db,
+		userModel: userModel,
+		game:      game,
+		send:      make(chan GameMessage, 256),
+	}
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -176,19 +191,8 @@ func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *mod
 		return
 	}
 
-	log.Println("New websocket connection, creating a client for", user.Username)
-
-	client := &Client{
-		hub:       hub,
-		db:        db,
-		userModel: user,
-		game:      game,
-		conn:      conn,
-		send:      make(chan GameMessage, 256),
-	}
-
+	client := NewClient(hub, db, conn, game, user)
 	client.hub.register <- client
-
 	go client.writePump()
 	go client.readPump()
 }

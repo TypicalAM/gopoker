@@ -9,7 +9,7 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/middleware"
 	"github.com/TypicalAM/gopoker/routes"
-	"github.com/TypicalAM/gopoker/websockets"
+	"github.com/TypicalAM/gopoker/game"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -71,7 +71,7 @@ func Run() {
 	r.Use(middleware.Session(db))
 	r.Use(middleware.General())
 
-	hub := websockets.NewHub()
+	hub := game.NewHub()
 	go hub.Run()
 	controller := routes.New(db, hub, cfg)
 	r.GET("/", controller.Index)

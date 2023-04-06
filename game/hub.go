@@ -1,4 +1,4 @@
-package websockets
+package game
 
 import (
 	"log"

@@ -54,6 +54,7 @@ func (controller Controller) RegisterPost(c *gin.Context) {
 	username := c.PostForm("username")
 	user := models.User{
 		Username: username,
+		// TODO: REMOVE THIS
 		GameID:   1,
 	}
 
