@@ -60,6 +60,7 @@ func NewClient(hub *Hub, db *gorm.DB, conn *websocket.Conn, game *models.Game, u
 	return &Client{
 		hub:       hub,
 		db:        db,
+		conn:      conn,
 		userModel: userModel,
 		game:      game,
 		send:      make(chan GameMessage, 256),
@@ -106,12 +107,10 @@ func (c *Client) readPump() {
 type msgType string
 
 const (
-	msgStatus  msgType = "status"
-	msgState           = "state"
-	msgInput           = "input"
-	msgStart           = "start"
-	msgGameEnd         = "end"
-	msgAction          = "action"
+	msgState  msgType = "state"
+	msgError          = "error"
+	msgInput          = "input"
+	msgAction         = "action"
 )
 
 // GameMessage is a message that is used to communicate between the player and the game server.

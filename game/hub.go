@@ -1,21 +1,5 @@
 package game
 
-import (
-	"log"
-	"time"
-)
-
-var (
-	// thankYouMsg is the message sent to the client every thankYouMsgInterval.
-	thankYouMsg = GameMessage{
-		Type: msgStatus,
-		Data: "Thank you for playing!",
-	}
-
-	// thankYouMsgInterval is the interval at which the thank you message is sent.
-	thankYouMsgInterval = 50 * time.Second
-)
-
 // Hub maintains the set of active clients and game servers, it also broadcasts messages to the clients.
 type Hub struct {
 	games      gameStore
@@ -36,11 +20,6 @@ func NewHub() *Hub {
 
 // Run starts the hub.
 func (h *Hub) Run() {
-	ticker := time.NewTicker(thankYouMsgInterval)
-	defer func() {
-		ticker.Stop()
-	}()
-
 	for {
 		select {
 		case client := <-h.register:
@@ -51,9 +30,6 @@ func (h *Hub) Run() {
 
 		case gameMsg := <-h.broadcast:
 			h.handleMessage(gameMsg.Sender, &gameMsg.Message)
-
-		case <-ticker.C:
-			h.sendThankYouMsg()
 		}
 	}
 }
@@ -63,10 +39,9 @@ func (h *Hub) registerClient(client *Client) {
 	game, ok := h.games.load(client.game.UUID)
 	if !ok {
 		game = newGame(h, client.game.UUID)
-		go game.run()
 	}
 
-	game.addPlayer(client)
+	game.addClient(client)
 	h.games.save(game)
 }
 
@@ -78,10 +53,10 @@ func (h *Hub) unregisterClient(client *Client) {
 	}
 
 	// TODO: Bug: If a client disconnects and reconnects, the game is deleted.
-	game.removePlayer(client)
-	if len(game.Players) == 0 {
-		h.games.delete(client.game.UUID)
-	}
+	game.removeClient(client)
+	//	if len(game.Players) == 0 {
+	//		h.games.delete(client.game.UUID)
+	//	}
 }
 
 // handleMessage handles a game message sent by a client.
@@ -92,18 +67,4 @@ func (h *Hub) handleMessage(client *Client, gameMsg *GameMessage) {
 	}
 
 	game.handleMessage(client, gameMsg)
-}
-
-// sendThankYouMsg sends a thank you message to all the clients.
-func (h *Hub) sendThankYouMsg() {
-	log.Println("Sending thank you message to all the clients")
-	for _, game := range h.games.loadAll() {
-		for _, client := range game.Players {
-			select {
-			case client.send <- thankYouMsg:
-			default:
-				h.unregisterClient(client)
-			}
-		}
-	}
 }
