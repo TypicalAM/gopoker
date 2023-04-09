@@ -45,7 +45,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	noAuth.Use(middleware.NoAuth())
 	noAuth.Use(middleware.Throttle(cfg.RequestsPerMin))
 	noAuth.POST("/register", controller.Register)
-	//noAuth.POST("/login", controller.Login)
+	noAuth.POST("/login", controller.Login)
 
 	auth := api.Group("/")
 	auth.Use(middleware.Auth())

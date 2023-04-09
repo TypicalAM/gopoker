@@ -8,7 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// RegisterData is the data that is sent to the register page
+// RegisterData is the data that is sent to the register route
 type RegisterData struct {
 	Username string
 	Password string
@@ -18,17 +18,24 @@ type RegisterData struct {
 func (controller *Controller) Register(c *gin.Context) {
 	var data RegisterData
 	if err := c.ShouldBindJSON(&data); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
 	if data.Username == "" || data.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Username and password are required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
 	if len(data.Password) < 8 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must be at least 8 characters long"})
+		return
+	}
+
+	user := models.User{Username: data.Username}
+	res := controller.db.Where(&user).First(&user)
+	if res.Error == nil || res.RowsAffected > 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 		return
 	}
 
@@ -38,12 +45,11 @@ func (controller *Controller) Register(c *gin.Context) {
 		return
 	}
 
-	user := models.User{
-		Username: data.Username,
-		Password: string(hashedPassword),
-	}
+	// TODO: The GameID hack is a temporary fix
+	user.Password = string(hashedPassword)
+	user.GameID = 1
 
-	res := controller.db.Save(&user)
+	res = controller.db.Save(&user)
 	if res.Error != nil || res.RowsAffected == 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
 		return
