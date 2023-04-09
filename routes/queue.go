@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"sort"
 
@@ -12,89 +11,85 @@ import (
 	"github.com/google/uuid"
 )
 
-// Queue is the queue page, users are redirected here when they want to play a game.
-// It searches for a game to join, and if none are found, it creates a new game.
+// Queue allows the user to join a game queue
 func (controller Controller) Queue(c *gin.Context) {
-	// Get the default page data
-	pd := controller.DefaultPageData(c)
-
-	// Get all the games which have playing = false
-	// If there are no games, create a new game
-	games := []models.Game{}
+	var games []models.Game
 	res := controller.db.Model(&models.Game{}).Preload("Players").Where("playing = ?", false).Find(&games)
 	if res.Error != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: "There was an error finding games. Please try again later.",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "There was an error finding games. Please try again later.",
 		})
-		c.HTML(http.StatusInternalServerError, "queue.html", pd)
 		return
 	}
 
-	// Get the user from the request
-	user := models.User{}
+	var user models.User
 	res = controller.db.Where("id = ?", c.MustGet(middleware.UserIDKey)).First(&user)
 	if res.Error != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: "There was an error finding your user. Please try again later.",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "There was an error finding your user. Please try again later.",
 		})
-		c.HTML(http.StatusInternalServerError, "queue.html", pd)
-		return
 	}
 
-	log.Println("Found games: ", len(games))
+	session := sessions.Default(c)
+	gameIDInterface := session.Get(models.GameIDKey)
+	if gameID, ok := gameIDInterface.(string); ok {
+		var game models.Game
+		res = controller.db.Where("uuid = ?", gameID).First(&game)
+		if res.Error != nil {
+			session.Set(models.GameIDKey, nil)
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"message": "You are already in a game.",
+				"uuid":    game.UUID,
+			})
+			return
+		}
+	}
+
 	if len(games) == 0 {
 		controller.createNewGame(c, &user)
 		return
-	} else {
-		// Sort the games by the number of players descending
-		sort.Slice(games, func(i, j int) bool {
-			return len(games[i].Players) < len(games[j].Players)
-		})
+	}
 
-		for i, game := range games {
-			// Check if we didn't fully fill the game in the meantime
-			if game.Playing || len(game.Players) == controller.config.GamePlayerCap {
-				continue
-			}
+	sort.Slice(games, func(i, j int) bool {
+		return len(games[i].Players) < len(games[j].Players)
+	})
 
-			// Add the user to the game
-			games[i].Players = append(games[i].Players, user)
-			res = controller.db.Save(&games[i])
-			if res.Error != nil {
-				pd.Messages = append(pd.Messages, Message{
-					Type:    "error",
-					Content: "There was an error joining the game. Please try again later.",
-				})
-				c.HTML(http.StatusInternalServerError, "queue.html", pd)
-				return
-			}
+	for i, game := range games {
+		// Check if we didn't fully fill the game in the meantime
+		if game.Playing || len(game.Players) == controller.config.GamePlayerCap {
+			continue
+		}
 
-			// Set the GameID of the user to represent that they are in a game
-			session := sessions.Default(c)
-			session.Set(models.GameIDKey, game.UUID)
-			session.Save()
-
-			// Redirect to the game
-			log.Println("Found, redirecting to game: ", game.UUID)
-			c.Redirect(http.StatusFound, "/game/id/"+game.UUID)
+		// Add the user to the game
+		games[i].Players = append(games[i].Players, user)
+		res = controller.db.Save(&games[i])
+		if res.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "There was an error adding you to the game. Please try again later.",
+			})
 			return
 		}
 
-		controller.createNewGame(c, &user)
+		session := sessions.Default(c)
+		session.Set(models.GameIDKey, game.UUID)
+		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "There was an error saving your session. Please try again later.",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"uuid": game.UUID,
+		})
+
 		return
 	}
 }
 
-func (controller *Controller) createNewGame(c *gin.Context, user *models.User) {
-	pd := controller.DefaultPageData(c)
-	session := sessions.Default(c)
-
-	log.Println("Creating new game")
-	log.Println("User: ", user.Username)
-
-	// Create a new game
+// createNewGame creates a new game and adds the user to it
+func (controller Controller) createNewGame(c *gin.Context, user *models.User) {
 	newGameUUID := uuid.New().String()
 	game := models.Game{
 		Playing: false,
@@ -102,22 +97,24 @@ func (controller *Controller) createNewGame(c *gin.Context, user *models.User) {
 		Players: []models.User{*user},
 	}
 
-	// Try to save the new game
 	res := controller.db.Model(&models.Game{}).Preload("Players").Create(&game)
 	if res.Error != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: "There was an error creating a new game. Please try again later.",
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "There was an error creating a new game. Please try again later.",
 		})
-		c.HTML(http.StatusInternalServerError, "queue.html", pd)
 		return
 	}
 
-	// Set the GameID of the user to represent that they are in a game
+	session := sessions.Default(c)
 	session.Set(models.GameIDKey, newGameUUID)
-	session.Save()
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "There was an error saving your session. Please try again later.",
+		})
+		return
+	}
 
-	// Redirect to the game page
-	log.Println("Created, redirecting to game: ", newGameUUID)
-	c.Redirect(http.StatusFound, "/game/id/"+newGameUUID)
+	c.JSON(http.StatusOK, gin.H{
+		"uuid": game.UUID,
+	})
 }

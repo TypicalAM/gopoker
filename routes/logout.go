@@ -7,13 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Logout logs the user out
+// Logout handles the logout route
 func (controller Controller) Logout(c *gin.Context) {
-	// Clear the session
 	session := sessions.Default(c)
 	session.Clear()
-	session.Save()
+	if err := session.Save(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		return
+	}
 
-	// Redirect to the login page
-	c.Redirect(http.StatusFound, "/login")
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

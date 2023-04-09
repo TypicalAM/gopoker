@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -13,43 +12,35 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-const (
-	loginError = "Could nt log you in. Please double check your username and password."
-)
-
-// Login renders the HTML content of the login page.
-func (controller Controller) Login(c *gin.Context) {
-	pd := controller.DefaultPageData(c)
-	pd.Title = "Login"
-	c.HTML(http.StatusOK, "login.html", pd)
+// LoginData is the data that is sent to the login route
+type LoginData struct {
+	Username string
+	Password string
 }
 
-// LoginPost handles requests to log in a user.
-func (controller Controller) LoginPost(c *gin.Context) {
-	pd := controller.DefaultPageData(c)
-	pd.Title = "Login"
-
-	username := c.PostForm("username")
-	user := models.User{Username: username}
-
-	res := controller.db.Where(&user).First(&user)
-	if res.Error != nil || res.RowsAffected == 0 {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: loginError,
-		})
-		c.HTML(http.StatusBadRequest, "login.html", pd)
+// Login is the route that handles the login
+func (controller Controller) Login(c *gin.Context) {
+	var data LoginData
+	if err := c.ShouldBindJSON(&data); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
 		return
 	}
 
-	password := c.PostForm("password")
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if data.Username == "" || data.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+
+	user := models.User{Username: data.Username}
+	res := controller.db.Where(&user).First(&user)
+	if res.Error != nil || res.RowsAffected == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(data.Password))
 	if err != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: loginError,
-		})
-		c.HTML(http.StatusBadRequest, "login.html", pd)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid username or password"})
 		return
 	}
 
@@ -61,28 +52,18 @@ func (controller Controller) LoginPost(c *gin.Context) {
 	}
 
 	res = controller.db.Create(&ses)
-	if res.Error != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: loginError,
-		})
-		c.HTML(http.StatusBadRequest, "login.html", pd)
+	if res.Error != nil || res.RowsAffected == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
 	session := sessions.Default(c)
 	session.Set(middleware.SessionIDKey, sessionID)
-
 	err = session.Save()
 	if err != nil {
-		pd.Messages = append(pd.Messages, Message{
-			Type:    "error",
-			Content: loginError,
-		})
-		c.HTML(http.StatusBadRequest, "login.html", pd)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
-	log.Println("User logged in:", user.Username)
-	c.Redirect(http.StatusTemporaryRedirect, "/")
+	c.JSON(http.StatusOK, gin.H{"message": "Success"})
 }
