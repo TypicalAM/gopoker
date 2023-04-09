@@ -51,7 +51,7 @@ func setupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	auth.Use(middleware.Auth())
 	auth.Use(middleware.Sensitive())
 	auth.POST("/logout", controller.Logout)
-	//auth.GET("/game/queue", controller.Queue)
+	auth.POST("/game/queue", controller.Queue)
 	//auth.GET("/game/id/:id/ws", controller.GameSocket)
 
 	return router, nil
