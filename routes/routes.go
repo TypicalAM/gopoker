@@ -15,7 +15,7 @@ type Controller struct {
 	config *config.Config
 }
 
-// New creates a new instance of the routes.Controller
+// New creates a new instance of the Controller
 func New(db *gorm.DB, hub *game.Hub, c *config.Config) Controller {
 	return Controller{
 		db:     db,
@@ -24,35 +24,8 @@ func New(db *gorm.DB, hub *game.Hub, c *config.Config) Controller {
 	}
 }
 
-// PageData holds the default data needed for HTML pages to render
-type PageData struct {
-	Title           string
-	Messages        []Message
-	IsAuthenticated bool
-	CacheParameter  string
-	Trans           func(s string) string
-}
-
-// Message holds a message which can be rendered as responses on HTML pages
-type Message struct {
-	Type    string // success, warning, error, etc.
-	Content string
-}
-
 // isAuthenticated checks if the current user is authenticated or not
 func isAuthenticated(c *gin.Context) bool {
 	_, exists := c.Get(middleware.UserIDKey)
 	return exists
-}
-
-func (controller Controller) DefaultPageData(c *gin.Context) PageData {
-	return PageData{
-		Title:           "Home",
-		Messages:        nil,
-		IsAuthenticated: isAuthenticated(c),
-		CacheParameter:  controller.config.CacheParameter,
-
-		// TODO: Dirty hack, fix this
-		Trans: func(str string) string { return str },
-	}
 }
