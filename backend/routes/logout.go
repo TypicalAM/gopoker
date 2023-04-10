@@ -12,7 +12,7 @@ func (controller Controller) Logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
 	if err := session.Save(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}
 
