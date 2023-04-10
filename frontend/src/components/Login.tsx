@@ -17,9 +17,11 @@ function LoginForm() {
 
 	const handleSubmit = (event: any) => {
 		event.preventDefault();
+		console.log(document.cookie);
 
 		fetch('http://localhost:8080/api/login', {
 			method: 'POST',
+			credentials: 'include',
 			body: JSON.stringify({ username, password }),
 			headers: {
 				'Content-Type': 'application/json',
