@@ -26,10 +26,16 @@ function JoinQueue() {
 				setMessage(`There has been an error joining the game: ${data.error}`);
 			} else if (data.uuid) {
 				const shakesperean = id.short(data.uuid);
-				setMessage(`Joining a game: ${shakesperean}`);
-				localStorage.setItem('activeGame', data.uuid);
+
+				if (data.message) {
+					setMessage(`Already in a game: ${shakesperean}`);
+				} else {
+					setMessage(`Joining game: ${shakesperean}`);
+					localStorage.setItem('activeGame', data.uuid);
+				}
+
 				setTimeout(() => {
-					navigate(`/game/id/${data.uuid}`)
+					navigate(`/game/play`)
 				}, 3000);
 			} else {
 				setMessage('There has been an error joining the game :(');
