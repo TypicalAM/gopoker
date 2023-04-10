@@ -19,9 +19,14 @@ import (
 func setupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	store := cookie.NewStore([]byte(cfg.CookieSecret))
 
+	// Allow cors
+	corsCofig := cors.DefaultConfig()
+	corsCofig.AllowOrigins = []string{"http://localhost:3000"}
+	corsCofig.AllowCredentials = true
+
 	// Default middleware
 	router := gin.Default()
-	router.Use(cors.Default())
+	router.Use(cors.New(corsCofig))
 	router.Use(sessions.Sessions("gopoker_session", store))
 	router.Use(middleware.Session(db))
 	router.Use(middleware.General())
