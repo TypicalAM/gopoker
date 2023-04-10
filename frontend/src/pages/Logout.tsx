@@ -29,6 +29,7 @@ function Logout() {
 		}
 
 		localStorage.removeItem('isAuthenticated');
+		localStorage.removeItem('activeGame');
 		setLoading(false);
 	}
 

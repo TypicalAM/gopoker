@@ -5,6 +5,7 @@ import Register from './pages/Register';
 import Login from './pages/Login';
 import Logout from './pages/Logout';
 import Queue from './pages/Queue';
+import Play from './pages/Play';
 
 const router = createBrowserRouter([
 	{
@@ -27,6 +28,10 @@ const router = createBrowserRouter([
 		path: '/game/queue',
 		element: <Queue />,
 	},
+	{
+		path: '/game/play',
+		element: <Play />,
+	}
 ]);
 
 function App() {

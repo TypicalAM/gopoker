@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ErrorPopup from './Popup';
 
@@ -15,7 +15,7 @@ function RegisterForm() {
 		setErrorMessage('');
 	}
 
-	const handleSubmit = (event: any) => {
+	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
 		fetch('http://localhost:8080/api/register', {
