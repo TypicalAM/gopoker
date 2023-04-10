@@ -20,14 +20,14 @@ function Logout() {
 				setMessage(`There has been an error logging out: ${data.error}`);
 			} else {
 				setMessage('You have been logged out');
-				setTimeout(() => {
-					navigate('/');
-				}, 5000);
+				navigate('/');
 			}
 		} catch (error) {
 			console.error(error);
 			setMessage('There has been an error logging out :(');
 		}
+
+		localStorage.removeItem('isAuthenticated');
 		setLoading(false);
 	}
 
