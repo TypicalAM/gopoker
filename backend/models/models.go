@@ -23,7 +23,7 @@ func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 // ConnectToTestDatabase connects to the test database using the config.
 func ConnectToTestDatabase(cfg *config.Config) (*gorm.DB, error) {
 	dsn := cfg.MySQLUser + ":" + cfg.MySQLPassword + "@tcp(" + cfg.MySQLHost + ":" + cfg.MySQLPort + ")/" + cfg.MySQLTestDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	db, err := gorm.Open(mysql.Open(dsn))
 	if err != nil {
 		return nil, err
 	}
