@@ -4,6 +4,9 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -22,6 +25,53 @@ func New(db *gorm.DB, hub *game.Hub, c *config.Config) Controller {
 		hub:    hub,
 		config: c,
 	}
+}
+
+// SetupRouter sets up the router
+func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
+	store := cookie.NewStore([]byte(cfg.CookieSecret))
+
+	// Allow cors
+	corsCofig := cors.DefaultConfig()
+	corsCofig.AllowOrigins = []string{"http://localhost:3000"}
+	corsCofig.AllowCredentials = true
+
+	// Default middleware
+	router := gin.Default()
+	router.Use(cors.New(corsCofig))
+	router.Use(sessions.Sessions("gopoker_session", store))
+	router.Use(middleware.Session(db))
+	router.Use(middleware.General())
+
+	// Set up the static file server
+	router.StaticFile("/", "./build/index.html")
+
+	// All static assets should be under the /assets path
+	assets := router.Group("/assets")
+	assets.Use(middleware.Cache(cfg.CacheLifetime))
+	assets.Static("/static", "./build/static")
+
+	// Create the controller
+	hub := game.NewHub()
+	go hub.Run()
+	controller := New(db, hub, cfg)
+
+	// Set up the api
+	api := router.Group("/api")
+	noAuth := api.Group("/")
+	noAuth.Use(middleware.NoAuth())
+	noAuth.Use(middleware.Throttle(cfg.RequestsPerMin))
+	noAuth.POST("/register", controller.Register)
+	noAuth.POST("/login", controller.Login)
+
+	auth := api.Group("/")
+	auth.Use(middleware.Auth())
+	auth.Use(middleware.Sensitive())
+	auth.POST("/logout", controller.Logout)
+	auth.POST("/game/queue", controller.Queue)
+	auth.GET("/game/id/:id", controller.Game)
+
+	return router, nil
 }
 
 // isAuthenticated checks if the current user is authenticated or not

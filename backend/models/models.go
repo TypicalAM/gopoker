@@ -6,12 +6,24 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // ConnectToDatabase connects to the database using the config.
 func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 	dsn := cfg.MySQLUser + ":" + cfg.MySQLPassword + "@tcp(" + cfg.MySQLHost + ":" + cfg.MySQLPort + ")/" + cfg.MySQLDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn))
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// ConnectToTestDatabase connects to the test database using the config.
+func ConnectToTestDatabase(cfg *config.Config) (*gorm.DB, error) {
+	dsn := cfg.MySQLUser + ":" + cfg.MySQLPassword + "@tcp(" + cfg.MySQLHost + ":" + cfg.MySQLPort + ")/" + cfg.MySQLTestDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +46,11 @@ func delOrphan(db *gorm.DB) {
 func MigrateDatabase(db *gorm.DB) error {
 	err := db.AutoMigrate(&Game{}, &User{}, &Session{})
 	delOrphan(db)
+
+	firstGame := Game{}
+	firstGame.ID = 1
+	firstGame.Playing = true
+	db.Save(&firstGame)
+
 	return err
 }

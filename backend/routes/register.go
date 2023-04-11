@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/TypicalAM/gopoker/models"
@@ -51,6 +52,7 @@ func (controller *Controller) Register(c *gin.Context) {
 
 	res = controller.db.Save(&user)
 	if res.Error != nil || res.RowsAffected == 0 {
+		log.Println(res.Error)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
 		return
 	}
