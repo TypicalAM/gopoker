@@ -64,7 +64,7 @@ type Player struct {
 	Active    bool
 }
 
-func newTexasHoldEm() *TexasHoldEm {
+func NewTexasHoldEm() *TexasHoldEm {
 	return &TexasHoldEm{
 		Deck: poker.NewDeck(),
 	}
@@ -153,22 +153,6 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		return InvalidActionErr
 	}
 
-	if playerIndex == len(t.Players)-1 {
-		var oneActivePlayer bool
-		for i := 0; i < len(t.Players)-1; i++ {
-			if t.Players[i].Active {
-				oneActivePlayer = true
-			}
-		}
-
-		if !oneActivePlayer {
-			t.gameOver = true
-			t.GameWinner = t.Players[len(t.Players)-1].Name
-			t.BestRank = "Last man standing"
-			return nil
-		}
-	}
-
 	switch action {
 	case Call:
 		if t.Players[playerIndex].Assets < t.ActiveBet {
@@ -251,6 +235,22 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		t.BestRank = rank
 		t.BestHand = hand
 		return err
+	}
+
+	playersActive := 0
+	lastActivePlayer := -1
+	for i, player := range t.Players {
+		if player.Active {
+			playersActive++
+			lastActivePlayer = i
+		}
+	}
+
+	if playersActive == 1 {
+		t.gameOver = true
+		t.GameWinner = t.Players[lastActivePlayer].Name
+		t.BestRank = "Last man standing"
+		return nil
 	}
 
 	smallBlind, _ := t.getNextPlayer(0)

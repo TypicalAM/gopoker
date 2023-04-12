@@ -19,7 +19,7 @@ func newGame(hub *Hub, uuid string) *Game {
 	return &Game{
 		UUID:  uuid,
 		hub:   hub,
-		texas: newTexasHoldEm(),
+		texas: NewTexasHoldEm(),
 	}
 }
 
