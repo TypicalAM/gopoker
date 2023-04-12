@@ -53,8 +53,9 @@ func setup() {
 
 func TestMain(m *testing.M) {
 	setup()
-	m.Run()
+	code := m.Run()
 	teardown()
+	os.Exit(code)
 }
 
 func TestRegister(t *testing.T) {

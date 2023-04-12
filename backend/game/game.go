@@ -42,6 +42,7 @@ func (g *Game) addClient(c *Client) {
 	}
 
 	// Broadcast the game state
+	log.Println("The game has been started, broadcasting the state")
 	g.broadcastState()
 }
 
