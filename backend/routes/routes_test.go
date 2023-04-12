@@ -2,6 +2,7 @@ package routes_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -234,6 +235,44 @@ func TestLogout(t *testing.T) {
 				t.Errorf("handler returned wrong status code: got %v want %v", status, tc.code)
 			}
 		})
+	}
+}
+
+var QueueResponse struct {
+	UUID string `json:"uuid"`
+}
+
+func TestQueue(t *testing.T) {
+	err, cookie := logInUser(`{"username":"user1","password":"testpass1"}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/api/game/queue", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req.AddCookie(cookie)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	if err := json.NewDecoder(rr.Body).Decode(&QueueResponse); err != nil {
+		t.Fatal(err)
+	}
+
+	var game models.Game
+	testDB.Model(&models.Game{}).Preload("Players").Where("uuid = ?", QueueResponse.UUID).First(&game)
+	if len(game.Players) != 1 {
+		t.Errorf("handler returned wrong number of players: got %v want %v", len(game.Players), 1)
+	}
+
+	if game.Players[0].Username != "user1" {
+		t.Errorf("handler returned wrong player: got %v want %v", game.Players[0].Username, "user1")
 	}
 }
 
