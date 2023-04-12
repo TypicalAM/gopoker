@@ -2,6 +2,7 @@ package routes_test
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -90,6 +91,33 @@ func TestRegister(t *testing.T) {
 	}
 }
 
+// createTestUsers creates test users
+func createTestUsers() error {
+	user1pass, _ := bcrypt.GenerateFromPassword([]byte("testpass1"), bcrypt.DefaultCost)
+	user1 := models.User{
+		GameID:   1,
+		Username: "user1",
+		Password: string(user1pass),
+	}
+
+	if res := testDB.Save(&user1); res.Error != nil {
+		return res.Error
+	}
+
+	user2pass, _ := bcrypt.GenerateFromPassword([]byte("testpass2"), bcrypt.DefaultCost)
+	user2 := models.User{
+		GameID:   1,
+		Username: "user2",
+		Password: string(user2pass),
+	}
+
+	if res := testDB.Save(&user2); res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
 func TestLogin(t *testing.T) {
 	if err := createTestUsers(); err != nil {
 		t.Fatal(err)
@@ -146,31 +174,67 @@ func TestLogin(t *testing.T) {
 	}
 }
 
-// createTestUsers creates test users
-func createTestUsers() error {
-	user1pass, _ := bcrypt.GenerateFromPassword([]byte("testpass1"), bcrypt.DefaultCost)
-	user1 := models.User{
-		GameID:   1,
-		Username: "user1",
-		Password: string(user1pass),
+func logInUser(body string) (error, *http.Cookie) {
+	createTestUsers()
+
+	req, err := http.NewRequest("POST", "/api/login", bytes.NewBuffer([]byte(body)))
+	if err != nil {
+		return err, nil
 	}
 
-	if res := testDB.Save(&user1); res.Error != nil {
-		return res.Error
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		return fmt.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK), nil
 	}
 
-	user2pass, _ := bcrypt.GenerateFromPassword([]byte("testpass2"), bcrypt.DefaultCost)
-	user2 := models.User{
-		GameID:   1,
-		Username: "user2",
-		Password: string(user2pass),
+	cookies := rr.Result().Cookies()
+	if len(cookies) != 1 {
+		return fmt.Errorf("handler returned wrong number of cookies: got %v want %v", len(cookies), 1), nil
 	}
 
-	if res := testDB.Save(&user2); res.Error != nil {
-		return res.Error
+	return nil, cookies[0]
+}
+
+func TestLogout(t *testing.T) {
+	tt := []struct {
+		name string
+		body string
+		code int
+	}{
+		{
+			name: "normal logout",
+			body: `{"username":"user1","password":"testpass1"}`,
+			code: http.StatusOK,
+		},
 	}
 
-	return nil
+	for _, tc := range tt {
+		t.Run(tc.name, func(t *testing.T) {
+			err, cookie := logInUser(tc.body)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req, err := http.NewRequest("POST", "/api/logout", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			req.AddCookie(cookie)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			router.ServeHTTP(rr, req)
+
+			if status := rr.Code; status != tc.code {
+				t.Errorf("handler returned wrong status code: got %v want %v", status, tc.code)
+			}
+		})
+	}
 }
 
 // teardown clears the tables of the database permanently
