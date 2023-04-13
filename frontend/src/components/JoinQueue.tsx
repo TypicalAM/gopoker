@@ -1,57 +1,40 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { setSyntheticLeadingComments } from 'typescript';
 
 function JoinQueue() {
 	const [loading, setLoading] = React.useState(true);
 	const [message, setMessage] = React.useState('');
+	const hasRunRef = React.useRef(false);
 	const id = require('uuid-readable');
-	const navigate = useNavigate();
 
-	const handleQueue = async () => {
-		console.log(document.cookie);
-
-		try {
-			const response = await fetch('http://localhost:8080/api/game/queue', {
-				method: 'POST',
-				credentials: 'include',
-				headers: {
-					'Content-Type': 'application/json',
-					'Cookie': document.cookie,
-				},
-			});
-			const data = await response.json();
-
-			if (data.error) {
-				setMessage(`There has been an error joining the game: ${data.error}`);
-			} else if (data.uuid) {
-				const shakesperean = id.short(data.uuid);
-
-				if (data.message) {
-					setMessage(`Already in a game: ${shakesperean}`);
-				} else {
-					setMessage(`Joining game: ${shakesperean}`);
+	const handleSubmit = () => {
+		fetch('http://localhost:8080/api/game/queue', {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+		})
+			.then(response => response.json())
+			.then(data => {
+				if (data.uuid) {
+					let shakespear = id.short(data.uuid);
+					setMessage("Joining game: " + shakespear);
 					localStorage.setItem('activeGame', data.uuid);
+					setTimeout(() => {
+						window.location.replace('/game/play');
+					}, 3000);
+				} else {
+					setMessage("There was an error joining the queue. Please try again later.");
 				}
-
-				setTimeout(() => {
-					navigate(`/game/play`)
-				}, 3000);
-			} else {
-				setMessage('There has been an error joining the game :(');
-			}
-		} catch (error) {
-			console.error(error);
-			setMessage('There has been an error joining the game :(');
-		}
+			})
 		setLoading(false);
 	}
 
 	useEffect(() => {
-		setTimeout(() => {
-			handleQueue();
-		}, 3000);
-	});
+		if (hasRunRef.current) return;
+		hasRunRef.current = true;
+		setTimeout(handleSubmit, 3000);
+	}, []);
 
 	return (
 		<div className="flex flex-col items-center justify-center">

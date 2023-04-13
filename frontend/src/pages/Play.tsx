@@ -4,9 +4,9 @@ import Sidebar from '../components/Sidebar';
 
 function Play() {
 	return (
-		<div id="wrapper" className="p-5 bg-white dark:bg-gray-900 antialiased h-screen">
+		<div id="wrapper" className="bg-white dark:bg-gray-900 antialiased h-screen">
 			<Sidebar />
-			<div className="p-4 h-full flex flex-col justify-center items-center sm:ml-64">
+			<div className="h-full sm:ml-64">
 				<Gameplay />
 			</div>
 		</div>
