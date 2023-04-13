@@ -38,11 +38,22 @@ func (controller Controller) Queue(c *gin.Context) {
 		if res.Error != nil {
 			session.Set(models.GameIDKey, nil)
 		} else {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "You are already in a game.",
-				"uuid":    game.UUID,
-			})
-			return
+			userInGame := false
+			for _, player := range game.Players {
+				if player.ID == user.ID {
+					userInGame = true
+				}
+			}
+
+			if userInGame {
+				c.JSON(http.StatusOK, gin.H{
+					"message": "You are already in a game.",
+					"uuid":    game.UUID,
+				})
+				return
+			}
+
+			session.Delete(models.GameIDKey)
 		}
 	}
 

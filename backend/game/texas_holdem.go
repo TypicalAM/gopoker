@@ -41,7 +41,7 @@ var InternalErr = errors.New("Internal error")
 const RequiredPlayers = 3
 
 type TexasHoldEm struct {
-	Deck           *poker.Deck
+	deck           *poker.Deck
 	CommunityCards []poker.Card
 	Players        []Player
 	Round          pokerRound
@@ -66,7 +66,7 @@ type Player struct {
 
 func NewTexasHoldEm() *TexasHoldEm {
 	return &TexasHoldEm{
-		Deck: poker.NewDeck(),
+		deck: poker.NewDeck(),
 	}
 }
 
@@ -96,7 +96,7 @@ func (t *TexasHoldEm) StartGame() error {
 
 	t.Round = PreFlop
 	for i := range t.Players {
-		cards, err := safeDraw(t.Deck, 2)
+		cards, err := safeDraw(t.deck, 2)
 		if err != nil {
 			return err
 		}
@@ -202,7 +202,7 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 
 	switch t.Round {
 	case PreFlop:
-		cards, err := safeDraw(t.Deck, 3)
+		cards, err := safeDraw(t.deck, 3)
 		if err != nil {
 			return err
 		}
@@ -211,7 +211,7 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		t.Round = Flop
 
 	case Flop:
-		card, err := safeDraw(t.Deck, 1)
+		card, err := safeDraw(t.deck, 1)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		t.Round = Turn
 
 	case Turn:
-		card, err := safeDraw(t.Deck, 1)
+		card, err := safeDraw(t.deck, 1)
 		if err != nil {
 			return err
 		}

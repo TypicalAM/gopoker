@@ -54,7 +54,6 @@ func setup() {
 func TestMain(m *testing.M) {
 	setup()
 	code := m.Run()
-	teardown()
 	os.Exit(code)
 }
 
@@ -275,11 +274,4 @@ func TestQueue(t *testing.T) {
 	if game.Players[0].Username != "user1" {
 		t.Errorf("handler returned wrong player: got %v want %v", game.Players[0].Username, "user1")
 	}
-}
-
-// teardown clears the tables of the database permanently
-func teardown() {
-	ses := &gorm.Session{AllowGlobalUpdate: true}
-	testDB.Session(ses).Unscoped().Delete(&models.Session{})
-	testDB.Session(ses).Unscoped().Delete(&models.User{})
 }
