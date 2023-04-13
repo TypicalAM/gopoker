@@ -282,5 +282,4 @@ func teardown() {
 	ses := &gorm.Session{AllowGlobalUpdate: true}
 	testDB.Session(ses).Unscoped().Delete(&models.Session{})
 	testDB.Session(ses).Unscoped().Delete(&models.User{})
-	testDB.Session(ses).Unscoped().Delete(&models.Game{})
 }

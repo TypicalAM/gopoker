@@ -11,8 +11,10 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/TypicalAM/gopoker/config"
+	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/TypicalAM/gopoker/routes"
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,10 @@ import (
 var testDB *gorm.DB
 var controller routes.Controller
 var router *gin.Engine
+
+// A time offset to make sure that the connection is established
+// and the hub creates the game/clients
+var wsConnectTime = 500 * time.Millisecond
 
 // setup sets up the tests
 func setup() {
@@ -59,20 +65,23 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-type userCookie struct {
+type userWS struct {
 	username string
-	cookie   *http.Cookie
+	conn     *websocket.Conn
 }
 
 type queueResponse struct {
 	UUID string `json:"uuid"`
 }
 
-// createUsers creates three users for testing, logs them in, and returns their
-// cookies.
-func createUsers() (error, []userCookie, string) {
-	uuid := ""
-	users := make([]userCookie, 3)
+// createConnect creates three users for testing, logs them in, and connects them
+// to the game server
+func createConnect(t *testing.T) ([]userWS, *httptest.Server) {
+	t.Helper()
+
+	users := make([]userWS, 3)
+	server := httptest.NewServer(router)
+	rawURL, _ := url.ParseRequestURI(server.URL)
 
 	for i := 0; i < 3; i++ {
 		userpass, _ := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("testpass%d", i)), bcrypt.DefaultCost)
@@ -83,25 +92,25 @@ func createUsers() (error, []userCookie, string) {
 		}
 
 		if res := testDB.Save(&user); res.Error != nil {
-			return res.Error, nil, ""
+			t.Fatalf("error creating user: %s", res.Error)
 		}
 
 		body := fmt.Sprintf(`{"username": "user%d", "password": "testpass%d"}`, i, i)
 		req, err := http.NewRequest("POST", "/api/login", bytes.NewBuffer([]byte(body)))
 		if err != nil {
-			return err, nil, ""
+			t.Fatalf("error creating login request: %s", err)
 		}
 
 		rr := httptest.NewRecorder()
 		router.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
-			return err, nil, ""
+			t.Fatalf("error logging in user: %s", rr.Body.String())
 		}
 
 		req, err = http.NewRequest("POST", "/api/game/queue", nil)
 		if err != nil {
-			return err, nil, ""
+			t.Fatalf("error creating queue request: %s", err)
 		}
 		req.AddCookie(rr.Result().Cookies()[0])
 
@@ -109,53 +118,160 @@ func createUsers() (error, []userCookie, string) {
 		router.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
-			return err, nil, ""
-		}
-
-		users[i] = userCookie{
-			username: fmt.Sprintf("user%d", i),
-			cookie:   rr.Result().Cookies()[0],
+			t.Fatalf("error queuing user: %s", rr.Body.String())
 		}
 
 		var queueRes queueResponse
 		if err := json.Unmarshal(rr.Body.Bytes(), &queueRes); err != nil {
-			return err, nil, ""
+			t.Fatalf("error unmarshalling queue response: %s", err)
 		}
-		uuid = queueRes.UUID
-	}
 
-	return nil, users, uuid
-}
-
-func TestGameConnect(t *testing.T) {
-	err, users, uuid := createUsers()
-	if err != nil {
-		t.Errorf("error creating users: %s", err)
-	}
-
-	var game models.Game
-	res := testDB.Model(&models.Game{}).Preload("Players").Where("uuid = ?", uuid).First(&game)
-	if res.Error != nil {
-		t.Error("error finding game")
-	}
-
-	sockets := make([]*websocket.Conn, 3)
-	s := httptest.NewServer(router)
-	defer s.Close()
-
-	rawURL, _ := url.ParseRequestURI(s.URL)
-	wsURL := "ws" + s.URL[4:] + "/api/game/id/" + uuid
-
-	for i, user := range users {
+		wsURL := "ws" + server.URL[4:] + "/api/game/id/" + queueRes.UUID
 		jar, _ := cookiejar.New(nil)
-		jar.SetCookies(rawURL, []*http.Cookie{user.cookie})
+		jar.SetCookies(rawURL, []*http.Cookie{rr.Result().Cookies()[0]})
 		dialer := websocket.DefaultDialer
 		dialer.Jar = jar
 		ws, _, err := dialer.Dial(wsURL, nil)
 		if err != nil {
 			t.Errorf("error dialing websocket: %s", err)
 		}
-		sockets[i] = ws
-		defer ws.Close()
+
+		users[i] = userWS{
+			username: user.Username,
+			conn:     ws,
+		}
+	}
+
+	time.Sleep(wsConnectTime)
+	return users, server
+}
+
+// sendMessage sends a message to the websocket
+func sendMessage(t *testing.T, user userWS, msg game.GameMessage) {
+	t.Helper()
+
+	m, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("error marshalling message: %s", err)
+	}
+
+	if err := user.conn.WriteMessage(websocket.TextMessage, m); err != nil {
+		t.Fatalf("error writing message: %s", err)
+	}
+}
+
+// readMessage reads a message from the websocket
+func readMessage(t *testing.T, user userWS) game.GameMessage {
+	t.Helper()
+
+	_, m, err := user.conn.ReadMessage()
+	if err != nil {
+		t.Fatalf("error reading message: %s", err)
+	}
+
+	var msg game.GameMessage
+	if err := json.Unmarshal(m, &msg); err != nil {
+		t.Fatalf("error unmarshalling message: %s", err)
+	}
+
+	return msg
+}
+
+// Make sure that the users can connect to the game server and that the game starts afterwards
+func TestGameConnect(t *testing.T) {
+	users, server := createConnect(t)
+	defer func() {
+		server.Close()
+		for _, user := range users {
+			user.conn.Close()
+		}
+	}()
+
+	var user models.User
+	if res := testDB.First(&user, "username = ?", users[0].username); res.Error != nil {
+		t.Fatalf("error finding user: %s", res.Error)
+	}
+
+	var gameModel models.Game
+	if res := testDB.First(&gameModel, "id = ?", user.GameID); res.Error != nil {
+		t.Fatalf("error finding game: %s", res.Error)
+	}
+
+	if gameModel.Playing != true {
+		t.Fatalf("game not playing")
+	}
+}
+
+// TestBroadcast tests that the game server broadcasts messages to all users
+func TestBroadcast(t *testing.T) {
+	users, server := createConnect(t)
+	defer func() {
+		server.Close()
+		for _, user := range users {
+			user.conn.Close()
+		}
+	}()
+
+	for _, user := range users {
+		msg := readMessage(t, user)
+		if msg.Type != game.MsgState {
+			t.Fatalf("expected state message, got %s", msg.Type)
+		}
+
+		var state game.TexasHoldEm
+		if err := json.Unmarshal([]byte(msg.Data), &state); err != nil {
+			t.Fatalf("error unmarshalling state: %s", err)
+		}
+	}
+}
+
+// TestExampleErrors tests that the game server broadcasts messages to all users
+func TestExampleErrors(t *testing.T) {
+	users, server := createConnect(t)
+	defer func() {
+		server.Close()
+		for _, user := range users {
+			user.conn.Close()
+		}
+	}()
+
+	tt := []struct {
+		name      string
+		userIndex int
+		msg       game.GameMessage
+	}{
+		{
+			name:      "invalid action",
+			userIndex: 0,
+			msg: game.GameMessage{
+				Type: game.MsgAction,
+				Data: "Invalid",
+			},
+		},
+		{
+			name:      "wrong type",
+			userIndex: 0,
+			msg: game.GameMessage{
+				Type: "typetype!!!",
+				Data: game.Fold,
+			},
+		},
+	}
+
+	for _, tc := range tt {
+		sendMessage(t, users[tc.userIndex], tc.msg)
+
+		var msg game.GameMessage
+		drop := true
+		for drop {
+			msg = readMessage(t, users[tc.userIndex])
+			if msg.Type != game.MsgState {
+				drop = false
+			}
+		}
+
+		if msg.Type != game.MsgError {
+			t.Fatalf("expected error message, got %s", msg.Type)
+		}
 	}
 }

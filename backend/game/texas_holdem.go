@@ -396,7 +396,7 @@ func getBestHand(holeCards []poker.Card, communityCards []poker.Card) ([]poker.C
 	return bestHand, int(bestScore), bestRank
 }
 
-func (t *TexasHoldEm) prettyPrint() string {
+func (t *TexasHoldEm) PrettyPrint() string {
 	stateBytes, _ := json.MarshalIndent(t, "", "	")
 	return string(stateBytes)
 }

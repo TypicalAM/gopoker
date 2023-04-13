@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+
+	"github.com/TypicalAM/gopoker/models"
 )
 
 // Game represents an instance of a game server.
@@ -41,6 +43,11 @@ func (g *Game) addClient(c *Client) {
 		return
 	}
 
+	// Update the game in the database
+	if res := c.db.Model(&models.Game{}).Where("uuid = ?", c.game.UUID).Update("Playing", true); res.Error != nil {
+		log.Printf("Error updating game: %s", res.Error)
+	}
+
 	// Broadcast the game state
 	log.Println("The game has been started, broadcasting the state")
 	g.broadcastState()
@@ -49,16 +56,16 @@ func (g *Game) addClient(c *Client) {
 // handleMessage handles a message from a client.
 func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	switch gameMsg.Type {
-	case msgInput:
+	case MsgInput:
 		// TODO
 		panic("msgInput not implemented")
 
-	case msgAction:
+	case MsgAction:
 		// Convert string to pokeraction
 		var action pokerAction
 		if val, ok := interface{}(gameMsg.Data).(pokerAction); !ok {
 			g.sendMessageToClient(client, &GameMessage{
-				Type: msgError,
+				Type: MsgError,
 				Data: "Invalid action",
 			})
 			return
@@ -68,16 +75,17 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 
 		if err := g.texas.AdvanceState(client.userModel.Username, action); err != nil {
 			g.sendMessageToClient(client, &GameMessage{
-				Type: msgError,
+				Type: MsgError,
 				Data: err.Error(),
 			})
 		}
 
 	default:
 		g.sendMessageToClient(client, &GameMessage{
-			Type: msgError,
+			Type: MsgError,
 			Data: "Incorrect action",
 		})
+		return
 	}
 
 	// Broadcast the game state
@@ -100,7 +108,7 @@ func (g *Game) broadcastState() {
 		sanitizedState := g.texas.SanitizeState(client.userModel.Username)
 		stateBytes, _ := json.Marshal(sanitizedState)
 		g.sendMessageToClient(client, &GameMessage{
-			Type: msgState,
+			Type: MsgState,
 			Data: string(stateBytes),
 		})
 	}
