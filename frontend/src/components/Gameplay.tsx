@@ -86,7 +86,7 @@ function Gameplay() {
 				window.location.replace('/');
 			}, 5000);
 		}
-	}, []);
+	}, [id]);
 
 
 	return (
