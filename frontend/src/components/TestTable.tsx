@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { GameState } from './GameState';
 import PlayerCard from './Player';
+import Card from './Card';
 
 function TestTable(props: GameState) {
 	const [myIndex, setMyIndex] = React.useState(-1);
+	const [communityCards, setCommunityCards] = React.useState<string[]>([""]);
 
 	useEffect(() => {
 		for (let i = 0; i < props.Players.length; i++) {
@@ -12,18 +14,46 @@ function TestTable(props: GameState) {
 				setMyIndex(i);
 			}
 		}
+
+		// Pad the community cards so there is 5 strings
+		let cards = props.CommunityCards;
+		if (!cards) {
+			cards = [];
+		}
+
+		while (cards.length < 5) {
+			cards.push("");
+		}
+
+		setCommunityCards(cards);
 	}, [props])
 
 	return (
-		<div className="w-full p-4 h-5/6">
-			<div className="flex flex-col bg-gradient-to-br from-gray-800 to-gray-700 h-full w-full rounded-xl">
+		<div className="w-full p-4 h-max">
+			<div className="flex flex-col bg-gradient-to-br from-gray-800 to-gray-700 h-full w-full rounded-xl space-y-10 pb-5">
 				<div className="top-0 left-0 pl-4 pt-2">
 					<h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
 						Pot <span className="ml-2 text-red-500">1000</span>
 					</h1>
 				</div>
 
-				<div className="flex flex-row justify-center items-center flex-grow">
+				<div className="flex flex-col items-center space-y-4">
+					<h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+						Current Bet <span className="ml-2 text-emerald-500">{props.ActiveBet}</span>
+					</h1>
+					<div className="flex justify-center space-x-4 bg-gray-800 rounded-xl p-3">
+						{communityCards.map((card, _) => {
+							if (!card) {
+								return <Card {...{ Value: null, IsCommunity: true }} />
+							} else {
+								return <Card {...{ Value: card, IsCommunity: true }} />
+							}
+						})
+						}
+					</div>
+				</div>
+
+				<div className="flex flex-row justify-center items-center">
 
 					<PlayerCard {...{ Value: props.Players[0], Active: 0 === props.CurrentPlayer, IsMe: myIndex === 0 }} />
 					<PlayerCard {...{ Value: props.Players[1], Active: 1 === props.CurrentPlayer, IsMe: myIndex === 1 }} />

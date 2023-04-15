@@ -43,10 +43,15 @@ function PlayerCard(props: PlayerCardProps) {
 	return (
 		<div className={`flex flex-col h-1/2 mx-4 p-4 rounded-xl justify-center items-center ${background}`}>
 			<h1 className="font-bold text-2xl text-white mb-3">{props.Value.Name}</h1>
-			<h1 className="font-bold text-m text-white mb-5">{actionDescription}</h1>
+
+			<div className="flex flex-row justify-between w-full">
+				<h1 className="font-bold text-l ml-5 text-white">{actionDescription}</h1>
+				<h1 className="font-bold text-l mr-5 text-white">Bets <span className="ml-1 text-yellow-500">{props.Value.Bet}</span></h1>
+			</div>
+
 			<div className="flex space-x-4">
 				<Card Value={props.Value.HoleCards[0]} />
-				<Card Value={props.Value.HoleCards[0]} />
+				<Card Value={props.Value.HoleCards[1]} />
 			</div>
 		</div>
 	)
