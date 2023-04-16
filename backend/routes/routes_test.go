@@ -65,12 +65,12 @@ func TestRegister(t *testing.T) {
 	}{
 		{
 			name: "password too short",
-			body: `{"username":"test2","password":"test"}`,
+			body: `{"username":"test3","password":"test"}`,
 			code: http.StatusBadRequest,
 		},
 		{
 			name: "normal register",
-			body: `{"username":"test","password":"testtest"}`,
+			body: `{"username":"test4","password":"testtest"}`,
 			code: http.StatusCreated,
 		},
 	}
