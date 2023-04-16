@@ -68,7 +68,7 @@ func TestDetermineWinner(t *testing.T) {
 			texas.Players[0].HoleCards = tc.hole0
 			texas.Players[1].HoleCards = tc.hole1
 			texas.Players[2].HoleCards = tc.hole2
-			texas.gameOver = true
+			texas.GameOver = true
 
 			player, rank, hand, err := texas.getWinner()
 			if err != nil {

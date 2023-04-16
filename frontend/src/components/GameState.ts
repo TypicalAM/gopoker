@@ -26,6 +26,7 @@ interface GameState {
 	CommunityCards: null | string[];
 	Players: Player[];
 
+	GameOver: boolean;
 	BestHand: null | string[];
 	BestRank: string;
 	GameWinner: string;
@@ -63,6 +64,7 @@ const DefaultGameState: GameState = {
 			HoleCards: [],
 		}
 	],
+	GameOver: false,
 	BestHand: null,
 	BestRank: '',
 	GameWinner: '',

@@ -6,6 +6,8 @@ interface PlayerCardProps {
 	Value: Player;
 	Active: boolean;
 	IsMe: boolean;
+	HasWon: boolean;
+	GameOver: boolean;
 }
 
 function PlayerCard(props: PlayerCardProps) {
@@ -13,14 +15,17 @@ function PlayerCard(props: PlayerCardProps) {
 	const [background, setBackground] = React.useState("bg-gray-800");
 
 	useEffect(() => {
-		if (props.IsMe && props.Active) {
+		if (props.HasWon) {
+			setBackground("bg-gradient-to-t from-emerald-300 to-gray-800");
+		} else if (!props.GameOver && props.IsMe && props.Active) {
 			setBackground("bg-gradient-to-t from-violet-300 to-gray-800");
-		} else if (props.Active) {
+		} else if (!props.GameOver && props.Active) {
 			setBackground("bg-gradient-to-t from-amber-300 to-gray-800");
 		} else {
 			setBackground("bg-gray-800");
 		}
 
+		if (!props.HasWon) {
 		switch (props.Value.Action) {
 			case "none":
 				setActionDescription("Waiting");
@@ -37,6 +42,9 @@ function PlayerCard(props: PlayerCardProps) {
 			case "check":
 				setActionDescription("Checked");
 				break;
+		}
+		} else {
+			setActionDescription("Winner!");
 		}
 	}, [props])
 

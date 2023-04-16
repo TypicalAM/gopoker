@@ -57,7 +57,7 @@ type TexasHoldEm struct {
 	ActiveBet      int
 	Pot            int
 
-	gameOver   bool
+	GameOver   bool
 	GameWinner string
 	BestRank   string
 	BestHand   []poker.Card
@@ -237,7 +237,7 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		t.Round = River
 
 	case River:
-		t.gameOver = true
+		t.GameOver = true
 		winner, rank, hand, err := t.getWinner()
 		t.GameWinner = winner
 		t.BestRank = rank
@@ -255,7 +255,7 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 	}
 
 	if playersActive == 1 {
-		t.gameOver = true
+		t.GameOver = true
 		t.GameWinner = t.Players[lastActivePlayer].Name
 		t.BestRank = "Last man standing"
 		return nil
@@ -303,7 +303,7 @@ func (t *TexasHoldEm) getNextPlayer(current int) (int, bool) {
 }
 
 func (t TexasHoldEm) SanitizeState(username string) *TexasHoldEm {
-	if t.gameOver {
+	if t.GameOver {
 		return &t
 	}
 
@@ -332,11 +332,11 @@ func (t *TexasHoldEm) Disconnect(username string) error {
 }
 
 func (t *TexasHoldEm) IsGameOver() bool {
-	return t.gameOver
+	return t.GameOver
 }
 
 func (t *TexasHoldEm) getWinner() (string, string, []poker.Card, error) {
-	if !t.gameOver {
+	if !t.GameOver {
 		return "", "", []poker.Card{}, GameStillInProgressErr
 	}
 
