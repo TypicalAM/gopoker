@@ -50,7 +50,7 @@ const DefaultGameState: GameState = {
 		{
 			Name: 'Player 2',
 			Active: true,
-			Action: 'call',
+			Action: 'none',
 			Assets: 1000,
 			Bet: 2,
 			HoleCards: [],
@@ -58,7 +58,7 @@ const DefaultGameState: GameState = {
 		{
 			Name: 'Player 3',
 			Active: true,
-			Action: 'call',
+			Action: 'none',
 			Assets: 1000,
 			Bet: 1,
 			HoleCards: [],
