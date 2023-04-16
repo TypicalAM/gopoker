@@ -28,6 +28,14 @@ const (
 	Fold              = "fold"
 )
 
+var actionMap = map[string]pokerAction{
+	"none":  None,
+	"call":  Call,
+	"raise": Raise,
+	"check": Check,
+	"fold":  Fold,
+}
+
 var NotEnoughMoneyErr = errors.New("Not enough money")
 var WrongTurnErr = errors.New("Wrong turn")
 var InvalidActionErr = errors.New("Wrong action")

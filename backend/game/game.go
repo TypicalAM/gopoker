@@ -63,7 +63,7 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	case MsgAction:
 		// Convert string to pokeraction
 		var action pokerAction
-		if val, ok := interface{}(gameMsg.Data).(pokerAction); !ok {
+		if val, ok := actionMap[gameMsg.Data]; !ok {
 			g.sendMessageToClient(client, &GameMessage{
 				Type: MsgError,
 				Data: "Invalid action",
