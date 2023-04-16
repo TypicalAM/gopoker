@@ -5,11 +5,11 @@ import spade from "../images/spade.png";
 import diamond from "../images/diamond.png";
 import question from "../images/question-mark.png";
 
-interface CardProps {
+interface PlayingCardProps {
 	Value: string | null;
 }
 
-function Card(props: CardProps) {
+function PlayingCard(props: PlayingCardProps) {
 	const [suit, setSuit] = useState(question);
 	const [value, setValue] = useState("");
 	const [red, setRed] = useState(false);
@@ -63,5 +63,5 @@ function Card(props: CardProps) {
 	)
 }
 
-export default Card;
+export default PlayingCard;
 

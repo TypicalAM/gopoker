@@ -35,8 +35,8 @@ const DefaultGameState: GameState = {
 	ActiveBet: 0,
 	Pot: 0,
 	Round: round.PreFlop,
-	CurrentPlayer: 0,
-	CommunityCards: ["Ah", "Ks", "Qs", "Js", "Ts"],
+	CurrentPlayer: -1,
+	CommunityCards: [],
 	Players: [
 		{
 			Name: 'Player 1',
@@ -44,7 +44,7 @@ const DefaultGameState: GameState = {
 			Action: 'none',
 			Assets: 1000,
 			Bet: 0,
-			HoleCards: ["Ah", "Ks"],
+			HoleCards: [],
 		},
 		{
 			Name: 'Player 2',

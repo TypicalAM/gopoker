@@ -6,7 +6,7 @@ function Play() {
 	return (
 		<div id="wrapper" className="bg-white dark:bg-gray-900 antialiased h-screen">
 			<Sidebar />
-			<div className="h-full sm:ml-64">
+			<div className="flex flex-col h-screen sm:ml-64">
 				<Gameplay />
 			</div>
 		</div>

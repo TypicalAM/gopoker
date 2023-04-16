@@ -1,17 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { GameMessage, MsgType } from './GameMessage';
 import { GameState, DefaultGameState } from './GameState';
 import Table from './Table';
-
-enum msgType {
-	State = 'state',
-	Error = 'error',
-	Input = 'input',
-}
-
-interface GameMessage {
-	type: msgType;
-	data: string;
-}
 
 function Gameplay() {
 	const ws = useRef<WebSocket | null>(null);
@@ -30,7 +20,7 @@ function Gameplay() {
 		}
 
 		switch (gameMessage.type) {
-			case msgType.State:
+			case MsgType.State:
 				let newGameState: GameState;
 				try {
 					newGameState = JSON.parse(gameMessage.data);
@@ -42,13 +32,13 @@ function Gameplay() {
 				setGameState(newGameState);
 				break;
 
-			case msgType.Error:
+			case MsgType.Error:
 				// TODO: Handle error
 				console.log("Received an error from the server");
 				console.log(gameMessage.data);
 				break
 
-			case msgType.Input:
+			case MsgType.Input:
 				// TODO: Handle input
 				console.log("Received an input message from the server");
 				console.log(gameMessage.data);
@@ -96,21 +86,9 @@ function Gameplay() {
 					{gameName} - {statusMessage}
 				</h1>
 			</div>
-			<div className="flex flex-col items-center justify-center h-screen">
-				<div>
-					<Table {...gameState} />
-				</div>
-				<button className="mt-4 bg-gray-700 p-3 rounded-xl text-gray-100" onClick={() => {
-					if (ws.current) {
-						let type = 'action';
-						let data = 'call';
-						let payload = {
-							type: type,
-							data: data
-						}
-						ws.current.send(JSON.stringify(payload));
-					}
-				}}>Send Message</button>
+
+			<div className="flex-grow items-center justify-center">
+				<Table {...{ state: gameState, conn: ws.current }} />
 			</div>
 		</div>
 	)

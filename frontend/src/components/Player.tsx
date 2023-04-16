@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Player } from "./GameState";
-import Card from './Card';
+import PlayingCard from './Card';
 
 interface PlayerCardProps {
 	Value: Player;
@@ -50,8 +50,8 @@ function PlayerCard(props: PlayerCardProps) {
 			</div>
 
 			<div className="flex space-x-4">
-				<Card Value={props.Value.HoleCards[0]} />
-				<Card Value={props.Value.HoleCards[1]} />
+				<PlayingCard Value={props.Value.HoleCards[0]} />
+				<PlayingCard Value={props.Value.HoleCards[1]} />
 			</div>
 		</div>
 	)
