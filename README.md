@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="400" src="assets/cover.svg" />
+    <img width="400" src="assets/cover.png" />
 </p>
 
 👋 Hello! This is an app for playing a game of poker! It was created as an exercise in sniffing network traffic in an unsecured network but it turned out to be a full-fletched application for having some fun!
