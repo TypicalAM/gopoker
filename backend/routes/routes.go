@@ -33,7 +33,7 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 
 	// Allow cors
 	corsCofig := cors.DefaultConfig()
-	corsCofig.AllowOrigins = []string{"http://localhost:3000"}
+	corsCofig.AllowOrigins = cfg.CorsTrustedOrigins
 	corsCofig.AllowCredentials = true
 
 	// Default middleware

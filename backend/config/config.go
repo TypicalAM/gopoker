@@ -5,24 +5,26 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 // Config is a struct that holds the configuration for the application.
 type Config struct {
-	MySQLUser         string
-	MySQLPassword     string
-	MySQLHost         string
-	MySQLPort         string
-	MySQLDatabase     string
-	MySQLTestDatabase string
-	CookieSecret      string
-	CacheLifetime     int
-	CacheParameter    string
-	RequestsPerMin    int
-	ListenPort        string
-	GamePlayerCap     int
+	MySQLUser          string
+	MySQLPassword      string
+	MySQLHost          string
+	MySQLPort          string
+	MySQLDatabase      string
+	MySQLTestDatabase  string
+	CookieSecret       string
+	CacheLifetime      int
+	CacheParameter     string
+	RequestsPerMin     int
+	ListenPort         string
+	GamePlayerCap      int
+	CorsTrustedOrigins []string
 }
 
 // ReadConfig reads the config from the .env file and populates the Config struct.
@@ -59,19 +61,23 @@ func ReadConfig(dir string) (*Config, error) {
 		return nil, err
 	}
 
+	corsTrustedOriginsRaw := os.Getenv("CORS_TRUSTED_ORIGINS")
+	corsTrustedOrigins := strings.Split(corsTrustedOriginsRaw, ",")
+
 	cfg := &Config{
-		MySQLUser:         os.Getenv("MYSQL_USER"),
-		MySQLPassword:     os.Getenv("MYSQL_PASSWORD"),
-		MySQLHost:         os.Getenv("MYSQL_HOST"),
-		MySQLPort:         os.Getenv("MYSQL_PORT"),
-		MySQLDatabase:     os.Getenv("MYSQL_DATABASE"),
-		MySQLTestDatabase: os.Getenv("MYSQL_TEST_DATABASE"),
-		CookieSecret:      os.Getenv("COOKIE_SECRET"),
-		CacheLifetime:     cacheLifetime,
-		CacheParameter:    cacheParameter,
-		RequestsPerMin:    requestsPerMin,
-		ListenPort:        os.Getenv("LISTEN_PORT"),
-		GamePlayerCap:     gameplayercap,
+		MySQLUser:          os.Getenv("MYSQL_USER"),
+		MySQLPassword:      os.Getenv("MYSQL_PASSWORD"),
+		MySQLHost:          os.Getenv("MYSQL_HOST"),
+		MySQLPort:          os.Getenv("MYSQL_PORT"),
+		MySQLDatabase:      os.Getenv("MYSQL_DATABASE"),
+		MySQLTestDatabase:  os.Getenv("MYSQL_TEST_DATABASE"),
+		CookieSecret:       os.Getenv("COOKIE_SECRET"),
+		CacheLifetime:      cacheLifetime,
+		CacheParameter:     cacheParameter,
+		RequestsPerMin:     requestsPerMin,
+		ListenPort:         os.Getenv("LISTEN_PORT"),
+		GamePlayerCap:      gameplayercap,
+		CorsTrustedOrigins: corsTrustedOrigins,
 	}
 
 	return cfg, nil
