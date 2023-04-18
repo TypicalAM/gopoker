@@ -56,12 +56,7 @@ func (g *Game) addClient(c *Client) {
 // handleMessage handles a message from a client.
 func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 	switch gameMsg.Type {
-	case MsgInput:
-		// TODO
-		panic("msgInput not implemented")
-
 	case MsgAction:
-		// Convert string to pokeraction
 		var action pokerAction
 		if val, ok := actionMap[gameMsg.Data]; !ok {
 			g.sendMessageToClient(client, &GameMessage{
@@ -80,16 +75,14 @@ func (g *Game) handleMessage(client *Client, gameMsg *GameMessage) {
 			})
 		}
 
+		g.broadcastState()
+
 	default:
 		g.sendMessageToClient(client, &GameMessage{
 			Type: MsgError,
 			Data: "Incorrect action",
 		})
-		return
 	}
-
-	// Broadcast the game state
-	g.broadcastState()
 }
 
 // sendMessageToClient sends a message to a client.
@@ -97,8 +90,7 @@ func (g *Game) sendMessageToClient(client *Client, gameMsg *GameMessage) {
 	select {
 	case client.send <- *gameMsg:
 	default:
-		// TODO: Just disconnect the client?
-		close(client.send)
+		g.removeClient(client)
 	}
 }
 
@@ -116,6 +108,7 @@ func (g *Game) broadcastState() {
 
 // removeClient removes a client from the game.
 func (g *Game) removeClient(c *Client) error {
+	close(c.send)
 	for i, client := range g.clients {
 		if client == c {
 			g.clients = append(g.clients[:i], g.clients[i+1:]...)

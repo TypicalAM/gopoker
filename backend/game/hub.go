@@ -1,5 +1,7 @@
 package game
 
+import "log"
+
 // Hub maintains the set of active clients and game servers, it also broadcasts messages to the clients.
 type Hub struct {
 	games      gameStore
@@ -52,11 +54,9 @@ func (h *Hub) unregisterClient(client *Client) {
 		return
 	}
 
-	// TODO: Bug: If a client disconnects and reconnects, the game is deleted.
-	game.removeClient(client)
-	//	if len(game.Players) == 0 {
-	//		h.games.delete(client.game.UUID)
-	//	}
+	if err := game.removeClient(client); err != nil {
+		log.Printf("error removing client from game: %v", err)
+	}
 }
 
 // handleMessage handles a game message sent by a client.
