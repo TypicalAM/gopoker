@@ -68,3 +68,8 @@ func (h *Hub) handleMessage(client *Client, gameMsg *GameMessage) {
 
 	game.handleMessage(client, gameMsg)
 }
+
+// deleteGame deletes a game.
+func (h *Hub) deleteGame(uuid string) {
+	h.games.delete(uuid)
+}

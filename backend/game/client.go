@@ -93,9 +93,6 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		log.Println(fmt.Sprintf("[%s] Message type: %s", c.game.UUID, gameMsg.Type))
-		log.Println(fmt.Sprintf("[%s] Message data: %s", c.game.UUID, gameMsg.Data))
-
 		c.hub.broadcast <- GameMessageWithSender{
 			Message: *gameMsg,
 			Sender:  c,

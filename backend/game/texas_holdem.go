@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/chehsunliu/poker"
-	"github.com/goccy/go-json"
 	"gonum.org/v1/gonum/stat/combin"
 )
 
@@ -42,6 +41,7 @@ var InvalidActionErr = errors.New("Wrong action")
 var NotEnoughPlayersErr = errors.New("Not enough players")
 var GameStillInProgressErr = errors.New("Game still in progress")
 var PlayerNotInGameErr = errors.New("Player not in game")
+var OwnTurnDisconnectErr = errors.New("Own turn disconnection")
 var DrawErr = errors.New("Internal error")
 var InvalidAssetErr = errors.New("Invalid asset number")
 var InternalErr = errors.New("Internal error")
@@ -57,10 +57,11 @@ type TexasHoldEm struct {
 	ActiveBet      int
 	Pot            int
 
-	GameOver   bool
-	GameWinner string
-	BestRank   string
-	BestHand   []poker.Card
+	gameStarted bool
+	GameOver    bool
+	GameWinner  string
+	BestRank    string
+	BestHand    []poker.Card
 }
 
 type Player struct {
@@ -85,7 +86,9 @@ func (t *TexasHoldEm) AddPlayer(username string, assets int) error {
 
 	for _, player := range t.Players {
 		if player.Name == username {
-			return InternalErr
+			// This means the player is reconnecting, so we don't want to add them again
+			// but they should be folding for the rest of the game
+			return nil
 		}
 	}
 
@@ -98,10 +101,15 @@ func (t *TexasHoldEm) AddPlayer(username string, assets int) error {
 }
 
 func (t *TexasHoldEm) StartGame() error {
+	if t.gameStarted {
+		return GameStillInProgressErr
+	}
+
 	if len(t.Players) < RequiredPlayers {
 		return NotEnoughPlayersErr
 	}
 
+	t.gameStarted = true
 	t.Round = PreFlop
 	for i := range t.Players {
 		cards, err := safeDraw(t.deck, 2)
@@ -261,6 +269,12 @@ func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
 		return nil
 	}
 
+	for i := range t.Players {
+		if t.Players[i].Active {
+			t.Players[i].Action = None
+		}
+	}
+
 	smallBlind, _ := t.getNextPlayer(0)
 	if t.Players[smallBlind].Assets < 1 {
 		return NotEnoughMoneyErr
@@ -320,15 +334,39 @@ func (t TexasHoldEm) SanitizeState(username string) *TexasHoldEm {
 }
 
 func (t *TexasHoldEm) Disconnect(username string) error {
+	var found bool
+	var index int
 	for i, player := range t.Players {
 		if player.Name == username {
-			t.Players[i].Action = Fold
-			t.Players[i].Active = false
-			break
+			found = true
+			index = i
 		}
 	}
 
-	return PlayerNotInGameErr
+	if !found {
+		return PlayerNotInGameErr
+	}
+
+	if index == t.CurrentPlayer {
+		t.AdvanceState(username, Fold)
+		return OwnTurnDisconnectErr
+	}
+
+	if len(t.Players) == 1 {
+		t.GameOver = true
+		t.GameWinner = t.Players[0].Name
+		t.BestRank = "Last man standing..."
+		return nil
+	}
+
+	if len(t.Players) == 0 {
+		t.GameOver = true
+		t.GameWinner = "No one"
+		t.BestRank = "No one won..."
+		return nil
+	}
+
+	return nil
 }
 
 func (t *TexasHoldEm) IsGameOver() bool {
@@ -360,6 +398,10 @@ func (t *TexasHoldEm) getWinner() (string, string, []poker.Card, error) {
 	}
 
 	return bestPlayer, bestRank, bestHand, nil
+}
+
+func (t *TexasHoldEm) ShouldBeDisbanded() bool {
+	return t.GameOver || (t.gameStarted && len(t.Players) == 0)
 }
 
 func safeDraw(deck *poker.Deck, n int) ([]poker.Card, error) {
@@ -402,9 +444,4 @@ func getBestHand(holeCards []poker.Card, communityCards []poker.Card) ([]poker.C
 	}
 
 	return bestHand, int(bestScore), bestRank
-}
-
-func (t *TexasHoldEm) PrettyPrint() string {
-	stateBytes, _ := json.MarshalIndent(t, "", "	")
-	return string(stateBytes)
 }

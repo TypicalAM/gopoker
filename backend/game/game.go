@@ -37,15 +37,15 @@ func (g *Game) addClient(c *Client) {
 	}
 
 	// Let's try to start the game
-	err = g.texas.StartGame()
-	if err != nil && errors.Is(err, NotEnoughPlayersErr) {
-		log.Println("There are not enough players to start the game")
+	if err = g.texas.StartGame(); err != nil {
+		log.Printf("Error starting game: %s", err)
 		return
 	}
 
 	// Update the game in the database
 	if res := c.db.Model(&models.Game{}).Where("uuid = ?", c.game.UUID).Update("Playing", true); res.Error != nil {
 		log.Printf("Error updating game: %s", res.Error)
+		return
 	}
 
 	// Broadcast the game state
@@ -115,7 +115,7 @@ func (g *Game) broadcastState() {
 }
 
 // removeClient removes a client from the game.
-func (g *Game) removeClient(c *Client) {
+func (g *Game) removeClient(c *Client) error {
 	for i, client := range g.clients {
 		if client == c {
 			g.clients = append(g.clients[:i], g.clients[i+1:]...)
@@ -124,7 +124,21 @@ func (g *Game) removeClient(c *Client) {
 	}
 
 	err := g.texas.Disconnect(c.userModel.Username)
-	if err != nil && errors.Is(err, PlayerNotInGameErr) {
-		log.Println("Removing a client from a game in which the player does not exist")
+	if err != nil {
+		if errors.Is(err, PlayerNotInGameErr) {
+			log.Println("Removing a client from a game in which the player does not exist")
+		} else if errors.Is(err, OwnTurnDisconnectErr) {
+			log.Println("Disconnecting a client in which it is their turn, advancing the game")
+			g.broadcastState()
+		} else {
+			return err
+		}
 	}
+
+	if g.texas.ShouldBeDisbanded() {
+		log.Println("The game should be disbanded, removing it from the hub")
+		g.hub.deleteGame(g.UUID)
+	}
+
+	return nil
 }
