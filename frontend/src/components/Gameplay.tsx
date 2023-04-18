@@ -30,6 +30,18 @@ function Gameplay() {
 				}
 
 				setGameState(newGameState);
+				if (newGameState.GameOver) {
+					let count = 10;
+					const interval = setInterval(() => {
+						setStatusMessage('Game over! Redirecting in ' + count + ' seconds...');
+						count--;
+						if (count < 0) {
+							clearInterval(interval);
+							localStorage.removeItem('activeGame');
+							window.location.replace('/');
+						}
+					}, 1000);
+				}
 				break;
 
 			case MsgType.Error:
