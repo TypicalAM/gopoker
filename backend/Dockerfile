@@ -29,6 +29,7 @@ WORKDIR /
 # Copy our static executable.
 COPY --from=builder /go/main /go/main
 COPY ./entrypoint.sh /go/entrypoint.sh
+COPY ./images /go/images
 RUN chmod +x go/entrypoint.sh
 
 ENV PORT 8080

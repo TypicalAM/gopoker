@@ -43,6 +43,11 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	router.Use(middleware.Session(db))
 	router.Use(middleware.General())
 
+	// All static assets should be under the /images path
+	assets := router.Group("/images")
+	assets.Use(middleware.Cache(cfg.CacheLifetime))
+	assets.Static("/", "./images/")
+
 	// Create the controller
 	hub := game.NewHub()
 	go hub.Run()
