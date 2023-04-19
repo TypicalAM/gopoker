@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/models"
@@ -10,14 +9,8 @@ import (
 )
 
 func main() {
-	// Get the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Read the config file
-	cfg, err := config.ReadConfig(cwd)
+	cfg, err := config.ReadConfig()
 	if err != nil {
 		log.Fatal(err)
 	}

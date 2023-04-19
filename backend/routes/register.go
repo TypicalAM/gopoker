@@ -46,9 +46,16 @@ func (controller *Controller) Register(c *gin.Context) {
 		return
 	}
 
-	// TODO: The GameID hack is a temporary fix
+	var firstGame models.Game
+	res = controller.db.Where("uuid = ?", "firstGame").First(&firstGame)
+	if res.Error != nil {
+		log.Println(res.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
+		return
+	}
+
+	user.GameID = firstGame.ID
 	user.Password = string(hashedPassword)
-	user.GameID = 1
 
 	res = controller.db.Save(&user)
 	if res.Error != nil || res.RowsAffected == 0 {

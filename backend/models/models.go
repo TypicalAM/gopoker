@@ -1,18 +1,26 @@
 package models
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/TypicalAM/gopoker/config"
-	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 // ConnectToDatabase connects to the database using the config.
 func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
-	dsn := cfg.MySQLUser + ":" + cfg.MySQLPassword + "@tcp(" + cfg.MySQLHost + ":" + cfg.MySQLPort + ")/" + cfg.MySQLDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Warsaw",
+		cfg.DatabaseHost,
+		cfg.DatabaseUser,
+		cfg.DatabasePassword,
+		cfg.DatabaseName,
+		cfg.DatabasePort,
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +30,15 @@ func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
 
 // ConnectToTestDatabase connects to the test database using the config.
 func ConnectToTestDatabase(cfg *config.Config) (*gorm.DB, error) {
-	dsn := cfg.MySQLUser + ":" + cfg.MySQLPassword + "@tcp(" + cfg.MySQLHost + ":" + cfg.MySQLPort + ")/" + cfg.MySQLTestDatabase + "?charset=utf8mb4&parseTime=True&loc=Local"
-	db, err := gorm.Open(mysql.Open(dsn))
+	dsn := fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Warsaw",
+		cfg.DatabaseHost,
+		cfg.DatabaseUser,
+		cfg.DatabasePassword,
+		cfg.DatabaseName,
+		cfg.DatabasePort,
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +62,15 @@ func MigrateDatabase(db *gorm.DB) error {
 	err := db.AutoMigrate(&Game{}, &User{}, &Session{})
 	delOrphan(db)
 
-	firstGame := Game{}
-	firstGame.ID = 1
-	firstGame.Playing = true
-	db.Save(&firstGame)
+	var firstGame Game
+	res := db.Where("uuid = ?", "firstGame").First(&firstGame)
+	if res.Error != nil {
+		log.Println("First game not found, creating it")
+		firstGame = Game{}
+		firstGame.UUID = "firstGame"
+		firstGame.Playing = true
+		db.Save(&firstGame)
+	}
 
 	return err
 }

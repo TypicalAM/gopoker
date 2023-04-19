@@ -25,7 +25,7 @@ var router *gin.Engine
 // setup sets up the tests
 func setup() {
 	gin.SetMode(gin.TestMode)
-	cfg, err := config.ReadConfig("../")
+	cfg, err := config.ReadConfig()
 	if err != nil {
 		os.Exit(1)
 	}
