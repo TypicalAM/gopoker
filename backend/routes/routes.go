@@ -43,14 +43,6 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	router.Use(middleware.Session(db))
 	router.Use(middleware.General())
 
-	// Set up the static file server
-	router.StaticFile("/", "./build/index.html")
-
-	// All static assets should be under the /assets path
-	assets := router.Group("/assets")
-	assets.Use(middleware.Cache(cfg.CacheLifetime))
-	assets.Static("/static", "./build/static")
-
 	// Create the controller
 	hub := game.NewHub()
 	go hub.Run()
