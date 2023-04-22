@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/TypicalAM/gopoker/models"
@@ -46,15 +45,6 @@ func (controller *Controller) Register(c *gin.Context) {
 		return
 	}
 
-	var firstGame models.Game
-	res = controller.db.Where("uuid = ?", "firstGame").First(&firstGame)
-	if res.Error != nil {
-		log.Println(res.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
-		return
-	}
-
-	user.GameID = firstGame.ID
 	user.Password = string(hashedPassword)
 
 	res = controller.db.Save(&user)

@@ -61,16 +61,5 @@ func delOrphan(db *gorm.DB) {
 func MigrateDatabase(db *gorm.DB) error {
 	err := db.AutoMigrate(&Game{}, &User{}, &Session{})
 	delOrphan(db)
-
-	var firstGame Game
-	res := db.Where("uuid = ?", "firstGame").First(&firstGame)
-	if res.Error != nil {
-		log.Println("First game not found, creating it")
-		firstGame = Game{}
-		firstGame.UUID = "firstGame"
-		firstGame.Playing = true
-		db.Save(&firstGame)
-	}
-
 	return err
 }
