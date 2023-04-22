@@ -47,7 +47,7 @@ func (controller *Controller) Register(c *gin.Context) {
 
 	user.Password = string(hashedPassword)
 
-	res = controller.db.Save(&user)
+	res = controller.db.Create(&user)
 	if res.Error != nil || res.RowsAffected == 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
 		return
