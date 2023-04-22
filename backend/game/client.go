@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/TypicalAM/gopoker/models"
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"gorm.io/gorm"
 )
@@ -33,18 +31,6 @@ var (
 	space   = []byte{' '}
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func getUpgrader() *websocket.Upgrader {
-	return &upgrader
-}
-
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
 	hub       *Hub
@@ -55,16 +41,20 @@ type Client struct {
 	send      chan GameMessage
 }
 
-// NewClient creates a new client.
-func NewClient(hub *Hub, db *gorm.DB, conn *websocket.Conn, game *models.Game, userModel *models.User) *Client {
-	return &Client{
+// Connect takes the websocket connection and bootstraps the client
+func Connect(hub *Hub, db *gorm.DB, conn *websocket.Conn, game *models.Game, user *models.User) {
+	client := &Client{
 		hub:       hub,
 		db:        db,
 		conn:      conn,
-		userModel: userModel,
+		userModel: user,
 		game:      game,
 		send:      make(chan GameMessage, 256),
 	}
+
+	client.hub.register <- client
+	go client.writePump()
+	go client.readPump()
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -179,16 +169,4 @@ func (c *Client) writePump() {
 	}
 }
 
-// ServeWs handles websocket requests from the peer.
-func ServeWs(hub *Hub, db *gorm.DB, c *gin.Context, game *models.Game, user *models.User) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		log.Println("Couldn't upgrade the connection to a websocket connection:", err)
-		return
-	}
 
-	client := NewClient(hub, db, conn, game, user)
-	client.hub.register <- client
-	go client.writePump()
-	go client.readPump()
-}
