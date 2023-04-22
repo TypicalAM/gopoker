@@ -1,0 +1,25 @@
+############################
+# STEP 1 build & run interactively using github.com/codegangsta/gin
+############################
+FROM golang:alpine
+
+# Install git.
+# Git is required for fetching the dependencies.
+RUN apk update && apk add --no-cache git
+
+# Set up the workdir
+WORKDIR /usr/src/gopoker
+
+# Fetch dependencies.
+COPY go.mod go.sum .
+RUN go mod download
+
+# Create the entrypoint script
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+# Fetch dependencies.
+RUN go install github.com/cosmtrek/air@latest
+
+# Run the Go Gin binary.
+ENTRYPOINT ["sh", "/usr/src/gopoker/entrypoint.sh"]

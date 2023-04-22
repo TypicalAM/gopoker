@@ -1,28 +1,23 @@
 version: '3.8'
 
 services:
-  db:
-    container_name: postgres
+  db_prod:
     image: postgres:13.0-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    ports:
-      - '5433:5432'
     env_file:
       - ./.env.db
 
-  frontend:
-    container_name: react
+  frontend_prod:
     build: ./frontend
     ports:
-      - '2137:2137'
+      - 3000:3000
     env_file:
       - ./.env.front
 
-  backend:
-    container_name: go
+  backend_prod:
     build: ./backend
-    command: /go/main
+    command: /go/main 
     volumes:
       - './backend:/usr/src/app'
     ports:
@@ -30,8 +25,8 @@ services:
     env_file:
       - ./.env.back
     depends_on:
-      - frontend
-      - db
+      - frontend_prod
+      - db_prod
 
 volumes:
   postgres_data:

@@ -7,14 +7,13 @@ FROM golang:alpine AS builder
 # Git is required for fetching the dependencies.
 RUN apk update && apk add --no-cache 'git=~2'
 
-# Install dependencies
+# Copy dependencies
 ENV GO111MODULE=on
 WORKDIR $GOPATH/src/gopoker/
 COPY . .
 
 # Fetch dependencies.
-# Using go get.
-RUN go get -d -v ./cmd/gopoker
+RUN go mod download
 
 # Build the binary.
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /go/main cmd/gopoker/gopoker.go
@@ -29,7 +28,6 @@ WORKDIR /
 # Copy our static executable.
 COPY --from=builder /go/main /go/main
 COPY ./entrypoint.sh /go/entrypoint.sh
-COPY ./images /go/images
 RUN chmod +x go/entrypoint.sh
 
 ENV PORT 8080
