@@ -18,7 +18,7 @@ func (controller Controller) Profile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, gin.H{"user": user.Sanitize()})
 }
 
 type ProfileUpdateData struct {
@@ -53,7 +53,7 @@ func (controller Controller) ProfileUpdate(c *gin.Context) {
 
 	if userUpdateData.ImageData == "" {
 		if displayNameUpdate {
-			c.JSON(http.StatusOK, gin.H{"user": user})
+			c.JSON(http.StatusOK, gin.H{"user": user.Sanitize()})
 			return
 		}
 
@@ -93,5 +93,5 @@ func (controller Controller) ProfileUpdate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"user": user})
+	c.JSON(http.StatusOK, gin.H{"user": user.Sanitize()})
 }

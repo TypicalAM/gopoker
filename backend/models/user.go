@@ -40,3 +40,27 @@ func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 	u.Profile = profile
 	return nil
 }
+
+// SafeUser is a safe user representation.
+type SafeUser struct {
+	Username string
+	Profile  SafeProfile
+}
+
+// SafeProfile is a safe profile representation.
+type SafeProfile struct {
+	DisplayName string
+	ImageURL    string
+}
+
+// Sanitize returns a safe user representation.
+func (u *User) Sanitize() SafeUser {
+	return SafeUser{
+		Username: u.Username,
+		Profile: SafeProfile{
+			DisplayName: u.Profile.DisplayName,
+			ImageURL:    u.Profile.ImageURL,
+		},
+	}
+}
+
