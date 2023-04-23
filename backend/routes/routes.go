@@ -4,6 +4,7 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/middleware"
+	"github.com/TypicalAM/gopoker/services"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -13,22 +14,24 @@ import (
 
 // Controller holds all the variables needed for routes to perform their logic
 type Controller struct {
-	db     *gorm.DB
-	hub    *game.Hub
-	config *config.Config
+	db         *gorm.DB
+	hub        *game.Hub
+	config     *config.Config
+	imgService services.Image
 }
 
 // New creates a new instance of the Controller
-func New(db *gorm.DB, hub *game.Hub, c *config.Config) Controller {
+func New(db *gorm.DB, hub *game.Hub, c *config.Config, imgService services.Image) Controller {
 	return Controller{
-		db:     db,
-		hub:    hub,
-		config: c,
+		db:         db,
+		hub:        hub,
+		config:     c,
+		imgService: imgService,
 	}
 }
 
 // SetupRouter sets up the router
-func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
+func SetupRouter(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.Engine, error) {
 	store := cookie.NewStore([]byte(cfg.CookieSecret))
 
 	// Allow cors
@@ -46,7 +49,7 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	// Create the controller
 	hub := game.NewHub()
 	go hub.Run()
-	controller := New(db, hub, cfg)
+	controller := New(db, hub, cfg, image)
 
 	// Set up the api
 	api := router.Group("/api")

@@ -1,12 +1,8 @@
 package routes
 
 import (
-	"context"
 	"net/http"
-	"time"
 
-	"github.com/cloudinary/cloudinary-go/v2"
-	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 	"github.com/gin-gonic/gin"
 )
 
@@ -60,33 +56,13 @@ func (controller Controller) ProfileUpdate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to update"})
 	}
 
-	if ok := isImage(userUpdateData.ImageData); !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid image"})
-		return
-	}
-
-	cld, err := cloudinary.NewFromURL(controller.config.CloudinaryURL)
+	url, err := controller.imgService.UploadFile(userUpdateData.ImageData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading image"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading"})
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	uploadResult, err := cld.Upload.Upload(
-		ctx,
-		userUpdateData.ImageData,
-		uploader.UploadParams{
-			Folder: "profile_images",
-		})
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading image"})
-		return
-	}
-
-	user.Profile.ImageURL = uploadResult.SecureURL
+	user.Profile.ImageURL = url
 	res := controller.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
