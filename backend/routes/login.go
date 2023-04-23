@@ -6,9 +6,9 @@ import (
 
 	"github.com/TypicalAM/gopoker/middleware"
 	"github.com/TypicalAM/gopoker/models"
-	"github.com/TypicalAM/gopoker/ulid"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -44,7 +44,7 @@ func (controller Controller) Login(c *gin.Context) {
 		return
 	}
 
-	sessionID := ulid.Generate()
+	sessionID := uuid.New().String()
 	ses := models.Session{
 		Identifier: sessionID,
 		UserID:     user.ID,
