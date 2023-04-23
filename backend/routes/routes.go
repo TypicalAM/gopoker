@@ -1,12 +1,9 @@
 package routes
 
 import (
-	"fmt"
-
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/middleware"
-	"github.com/TypicalAM/gopoker/models"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -65,22 +62,8 @@ func SetupRouter(db *gorm.DB, cfg *config.Config) (*gin.Engine, error) {
 	auth.POST("/logout", controller.Logout)
 	auth.POST("/game/queue", controller.Queue)
 	auth.GET("/game/id/:id", controller.Game)
+	auth.GET("/profile", controller.Profile)
+	auth.PUT("/profile", controller.ProfileUpdate)
 
 	return router, nil
-}
-
-// getCurrentUser retrieves the current user from the context
-func (conttroller Controller) GetUser(c *gin.Context) (*models.User, error) {
-	userID, exists := c.Get(middleware.UserIDKey)
-	if !exists {
-		return nil, fmt.Errorf("user id does not exist in context")
-	}
-
-	var user models.User
-	res := conttroller.db.Model(&models.User{}).Preload("Profile").Where("id = ?", userID).Find(&user)
-	if res.Error != nil {
-		return nil, res.Error
-	}
-
-	return &user, nil
 }

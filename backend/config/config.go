@@ -19,6 +19,9 @@ type Config struct {
 	ListenPort         string
 	GamePlayerCap      int
 	CorsTrustedOrigins []string
+
+	// TODO: Make this optional
+	CloudinaryURL string
 }
 
 // ReadConfig reads the config from the .env file and populates the Config struct.
@@ -38,6 +41,8 @@ func ReadConfig() (*Config, error) {
 	corsTrustedOriginsRaw := os.Getenv("CORS_TRUSTED_ORIGINS")
 	corsTrustedOrigins := strings.Split(corsTrustedOriginsRaw, ",")
 
+	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
+
 	cfg := &Config{
 		DatabaseUser:       os.Getenv("DB_USER"),
 		DatabasePassword:   os.Getenv("DB_PASSWORD"),
@@ -50,6 +55,7 @@ func ReadConfig() (*Config, error) {
 		ListenPort:         os.Getenv("LISTEN_PORT"),
 		GamePlayerCap:      gameplayercap,
 		CorsTrustedOrigins: corsTrustedOrigins,
+		CloudinaryURL:      cloudinaryURL,
 	}
 
 	return cfg, nil
