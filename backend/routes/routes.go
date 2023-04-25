@@ -4,7 +4,7 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/middleware"
-	"github.com/TypicalAM/gopoker/services"
+	"github.com/TypicalAM/gopoker/services/upload"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -14,14 +14,14 @@ import (
 
 // controller holds all the variables needed for routes to perform their logic
 type controller struct {
-	db         *gorm.DB
-	hub        *game.Hub
-	config     *config.Config
-	imgService services.Image
+	db       *gorm.DB
+	hub      *game.Hub
+	config   *config.Config
+	uploader upload.Uploader
 }
 
 // New creates a new router with all the routes
-func New(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.Engine, error) {
+func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine, error) {
 	store := cookie.NewStore([]byte(cfg.CookieSecret))
 
 	// Allow cors
@@ -40,10 +40,10 @@ func New(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.Engine, er
 	hub := game.NewHub()
 	go hub.Run()
 	controller := controller{
-		db:         db,
-		hub:        hub,
-		config:     cfg,
-		imgService: image,
+		db:       db,
+		hub:      hub,
+		config:   cfg,
+		uploader: uploader,
 	}
 
 	// Set up the api

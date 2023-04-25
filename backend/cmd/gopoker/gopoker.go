@@ -7,7 +7,7 @@ import (
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/TypicalAM/gopoker/routes"
-	"github.com/TypicalAM/gopoker/services"
+	"github.com/TypicalAM/gopoker/services/upload"
 )
 
 func main() {
@@ -27,13 +27,13 @@ func main() {
 	}
 
 	// Set up the file service
-	fileService, err := services.NewCloudinaryService(cfg.CloudinaryURL, "profile_images", 5*time.Second)
+	uploader, err := upload.NewCloudinary(cfg.CloudinaryURL, "profile_images", 5*time.Second)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Set up the router
-	router, err := routes.New(db, cfg, fileService)
+	router, err := routes.New(db, cfg, uploader)
 	if err != nil {
 		log.Fatal(err)
 	}

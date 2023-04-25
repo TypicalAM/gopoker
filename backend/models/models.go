@@ -28,24 +28,6 @@ func New(cfg *config.Config) (*gorm.DB, error) {
 	return db, nil
 }
 
-// ConnectToTestDatabase connects to the test database using the config.
-func ConnectToTestDatabase(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(
-		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Warsaw",
-		cfg.DatabaseHost,
-		cfg.DatabaseUser,
-		cfg.DatabasePassword,
-		cfg.DatabaseName,
-		cfg.DatabasePort,
-	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
-}
-
 // delOrphan deletes the orphan games from the database.
 func delOrphan(db *gorm.DB) {
 	// Set the gameID for every user to 0

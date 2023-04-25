@@ -56,7 +56,7 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to update"})
 	}
 
-	url, err := con.imgService.UploadFile(userUpdateData.ImageData)
+	url, err := con.uploader.UploadFile(userUpdateData.ImageData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading"})
 		return
