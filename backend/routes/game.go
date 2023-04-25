@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -30,7 +29,7 @@ func (con controller) Game(c *gin.Context) {
 		return
 	}
 
-	gameModel, err := ensureCorrectGame(con.db, user, c)
+	game, err := ensureCorrectGame(con.db, user, c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect game"})
 		return
@@ -42,7 +41,7 @@ func (con controller) Game(c *gin.Context) {
 		return
 	}
 
-	game.Connect(con.hub, con.db, conn, gameModel, user)
+	con.hub.Connect(conn, game, user)
 }
 
 // ensureCorrectGame checks if the user is in the game and the game exists
