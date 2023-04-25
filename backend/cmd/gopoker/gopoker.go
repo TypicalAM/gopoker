@@ -11,6 +11,9 @@ import (
 )
 
 func main() {
+	// Set up the logger
+	log.SetFlags(log.Lshortfile)
+
 	// Read the config file
 	cfg := config.New()
 

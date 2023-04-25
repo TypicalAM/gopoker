@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/TypicalAM/gopoker/config"
-	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/middleware"
+	"github.com/TypicalAM/gopoker/services/game"
 	"github.com/TypicalAM/gopoker/services/upload"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
@@ -15,7 +15,7 @@ import (
 // controller holds all the variables needed for routes to perform their logic
 type controller struct {
 	db       *gorm.DB
-	hub      *game.Hub
+	hub      *game.Server
 	config   *config.Config
 	uploader upload.Uploader
 }
@@ -37,7 +37,7 @@ func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine
 	router.Use(middleware.General())
 
 	// Create the controller
-	hub := game.NewHub()
+	hub := game.New(db)
 	go hub.Run()
 	controller := controller{
 		db:       db,

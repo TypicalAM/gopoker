@@ -4,19 +4,19 @@ import "sync"
 
 // gameStore is a store of games.
 type gameStore struct {
-	games map[string]*Game
+	games map[string]*lobby
 	mutex sync.RWMutex
 }
 
 // newGameStore creates a new game store.
 func newGameStore() gameStore {
 	return gameStore{
-		games: make(map[string]*Game),
+		games: make(map[string]*lobby),
 	}
 }
 
 // load gets a game from the store.
-func (s *gameStore) load(UUID string) (*Game, bool) {
+func (s *gameStore) load(UUID string) (*lobby, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	game, ok := s.games[UUID]
@@ -24,11 +24,11 @@ func (s *gameStore) load(UUID string) (*Game, bool) {
 }
 
 // loadAll gets all the games from the store.
-func (s *gameStore) loadAll() []*Game {
+func (s *gameStore) loadAll() []*lobby {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
-	games := make([]*Game, 0, len(s.games))
+	games := make([]*lobby, 0, len(s.games))
 	for _, game := range s.games {
 		games = append(games, game)
 	}
@@ -37,11 +37,11 @@ func (s *gameStore) loadAll() []*Game {
 }
 
 // save saves a game in the store.
-func (s *gameStore) save(game *Game) {
+func (s *gameStore) save(l *lobby) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	s.games[game.UUID] = game
+	s.games[l.uuid] = l
 }
 
 // delete deletes a game from the store.

@@ -1,4 +1,4 @@
-package game
+package texas
 
 import (
 	"errors"
@@ -17,17 +17,17 @@ const (
 	River              = "river"
 )
 
-type pokerAction string
+type PokerAction string
 
 const (
-	None  pokerAction = "none"
+	None  PokerAction = "none"
 	Call              = "call"
 	Raise             = "raise"
 	Check             = "check"
 	Fold              = "fold"
 )
 
-var actionMap = map[string]pokerAction{
+var actionMap = map[string]PokerAction{
 	"none":  None,
 	"call":  Call,
 	"raise": Raise,
@@ -69,7 +69,7 @@ type Player struct {
 	HoleCards []poker.Card
 	Assets    int
 	Bet       int
-	Action    pokerAction
+	Action    PokerAction
 	Active    bool
 }
 
@@ -145,7 +145,7 @@ func (t *TexasHoldEm) StartGame() error {
 	return nil
 }
 
-func (t *TexasHoldEm) AdvanceState(username string, action pokerAction) error {
+func (t *TexasHoldEm) AdvanceState(username string, action PokerAction) error {
 	if len(t.Players) < RequiredPlayers {
 		return NotEnoughPlayersErr
 	}
@@ -402,6 +402,11 @@ func (t *TexasHoldEm) getWinner() (string, string, []poker.Card, error) {
 
 func (t *TexasHoldEm) ShouldBeDisbanded() bool {
 	return t.GameOver || (t.gameStarted && len(t.Players) == 0)
+}
+
+func DecodeAction(text string) (PokerAction, bool) {
+	val, ok := actionMap[text]
+	return val, ok
 }
 
 func safeDraw(deck *poker.Deck, n int) ([]poker.Card, error) {
