@@ -24,39 +24,41 @@ type Config struct {
 	CloudinaryURL string
 }
 
-// ReadConfig reads the config from the .env file and populates the Config struct.
-func ReadConfig() (*Config, error) {
-	requestsPerMinRaw := os.Getenv("REQUESTS_PER_MIN")
-	requestsPerMin, err := strconv.Atoi(requestsPerMinRaw)
+// New returns a new Config struct.
+func New() *Config {
+	return &Config{
+		DatabaseUser:       getEnvString("DB_USER", "myuser"),
+		DatabasePassword:   getEnvString("DB_PASSWORD", "mypassword"),
+		DatabaseHost:       getEnvString("DB_HOST", "localhost"),
+		DatabasePort:       getEnvString("DB_PORT", "5432"),
+		DatabaseName:       getEnvString("DB_DATABASE", "mydatabase"),
+		CookieSecret:       getEnvString("COOKIE_SECRET", "mysecret"),
+		RequestsPerMin:     getEnvInt("REQUESTS_PER_MIN", 30),
+		ListenPort:         getEnvString("LISTEN_PORT", "8080"),
+		GamePlayerCap:      getEnvInt("GAME_PLAYER_CAP", 3),
+		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
+		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
+	}
+}
+
+// getEnvString gets the environment variable or returns the default value.
+// TODO: Move to generics
+func getEnvString(key string, fallback string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+
+	return val
+}
+
+// getEnvInt gets the environment variable or returns the default value.
+func getEnvInt(key string, fallback int) int {
+	val := os.Getenv(key)
+	num, err := strconv.Atoi(val)
 	if err != nil {
-		return nil, err
+		return fallback
 	}
 
-	gameplayercapRaw := os.Getenv("GAME_PLAYER_CAP")
-	gameplayercap, err := strconv.Atoi(gameplayercapRaw)
-	if err != nil {
-		return nil, err
-	}
-
-	corsTrustedOriginsRaw := os.Getenv("CORS_TRUSTED_ORIGINS")
-	corsTrustedOrigins := strings.Split(corsTrustedOriginsRaw, ",")
-
-	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
-
-	cfg := &Config{
-		DatabaseUser:       os.Getenv("DB_USER"),
-		DatabasePassword:   os.Getenv("DB_PASSWORD"),
-		DatabaseHost:       os.Getenv("DB_HOST"),
-		DatabasePort:       os.Getenv("DB_PORT"),
-		DatabaseName:       os.Getenv("DB_DATABASE"),
-		DatabaseTestName:   os.Getenv("DB_TEST_DATABASE"),
-		CookieSecret:       os.Getenv("COOKIE_SECRET"),
-		RequestsPerMin:     requestsPerMin,
-		ListenPort:         os.Getenv("LISTEN_PORT"),
-		GamePlayerCap:      gameplayercap,
-		CorsTrustedOrigins: corsTrustedOrigins,
-		CloudinaryURL:      cloudinaryURL,
-	}
-
-	return cfg, nil
+	return num
 }

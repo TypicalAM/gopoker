@@ -12,10 +12,7 @@ import (
 
 func main() {
 	// Read the config file
-	cfg, err := config.ReadConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := config.New()
 
 	// Connect to the database
 	db, err := models.ConnectToDatabase(cfg)
