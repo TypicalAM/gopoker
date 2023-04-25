@@ -7,8 +7,8 @@ import (
 )
 
 // Profile fetches the user's profile.
-func (controller Controller) Profile(c *gin.Context) {
-	user, err := controller.GetUser(c)
+func (con controller) Profile(c *gin.Context) {
+	user, err := con.getUser(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user"})
 		return
@@ -23,8 +23,8 @@ type ProfileUpdateData struct {
 }
 
 // ProfileUpdate updates the user's profile.
-func (controller Controller) ProfileUpdate(c *gin.Context) {
-	user, err := controller.GetUser(c)
+func (con controller) ProfileUpdate(c *gin.Context) {
+	user, err := con.getUser(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user"})
 		return
@@ -41,7 +41,7 @@ func (controller Controller) ProfileUpdate(c *gin.Context) {
 	if userUpdateData.DisplayName != "" {
 		displayNameUpdate = true
 		user.Profile.DisplayName = userUpdateData.DisplayName
-		if res := controller.db.Save(&user); res.Error != nil {
+		if res := con.db.Save(&user); res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
 			return
 		}
@@ -56,14 +56,14 @@ func (controller Controller) ProfileUpdate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to update"})
 	}
 
-	url, err := controller.imgService.UploadFile(userUpdateData.ImageData)
+	url, err := con.imgService.UploadFile(userUpdateData.ImageData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading"})
 		return
 	}
 
 	user.Profile.ImageURL = url
-	res := controller.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile)
+	res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
 		return

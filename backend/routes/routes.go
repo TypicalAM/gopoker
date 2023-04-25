@@ -12,26 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// Controller holds all the variables needed for routes to perform their logic
-type Controller struct {
+// controller holds all the variables needed for routes to perform their logic
+type controller struct {
 	db         *gorm.DB
 	hub        *game.Hub
 	config     *config.Config
 	imgService services.Image
 }
 
-// New creates a new instance of the Controller
-func New(db *gorm.DB, hub *game.Hub, c *config.Config, imgService services.Image) Controller {
-	return Controller{
-		db:         db,
-		hub:        hub,
-		config:     c,
-		imgService: imgService,
-	}
-}
-
-// SetupRouter sets up the router
-func SetupRouter(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.Engine, error) {
+// New creates a new router with all the routes
+func New(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.Engine, error) {
 	store := cookie.NewStore([]byte(cfg.CookieSecret))
 
 	// Allow cors
@@ -49,7 +39,12 @@ func SetupRouter(db *gorm.DB, cfg *config.Config, image services.Image) (*gin.En
 	// Create the controller
 	hub := game.NewHub()
 	go hub.Run()
-	controller := New(db, hub, cfg, image)
+	controller := controller{
+		db:         db,
+		hub:        hub,
+		config:     cfg,
+		imgService: image,
+	}
 
 	// Set up the api
 	api := router.Group("/api")

@@ -12,9 +12,9 @@ import (
 )
 
 // Queue allows the user to join a game queue
-func (controller Controller) Queue(c *gin.Context) {
+func (con controller) Queue(c *gin.Context) {
 	var games []models.Game
-	res := controller.db.Model(&models.Game{}).Preload("Players").Where("playing = ?", false).Find(&games)
+	res := con.db.Model(&models.Game{}).Preload("Players").Where("playing = ?", false).Find(&games)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "There was an error finding games. Please try again later.",
@@ -23,7 +23,7 @@ func (controller Controller) Queue(c *gin.Context) {
 	}
 
 	var user models.User
-	res = controller.db.Where("id = ?", c.MustGet(middleware.UserIDKey)).First(&user)
+	res = con.db.Where("id = ?", c.MustGet(middleware.UserIDKey)).First(&user)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "There was an error finding your user. Please try again later.",
@@ -34,7 +34,7 @@ func (controller Controller) Queue(c *gin.Context) {
 	gameIDInterface := session.Get(models.GameIDKey)
 	if gameID, ok := gameIDInterface.(string); ok {
 		var game models.Game
-		res = controller.db.Where("uuid = ?", gameID).First(&game)
+		res = con.db.Where("uuid = ?", gameID).First(&game)
 		if res.Error != nil {
 			session.Set(models.GameIDKey, nil)
 		} else {
@@ -58,7 +58,7 @@ func (controller Controller) Queue(c *gin.Context) {
 	}
 
 	if len(games) == 0 {
-		controller.createNewGame(c, &user)
+		con.createNewGame(c, &user)
 		return
 	}
 
@@ -68,13 +68,13 @@ func (controller Controller) Queue(c *gin.Context) {
 
 	for i, game := range games {
 		// Check if we didn't fully fill the game in the meantime
-		if game.Playing || len(game.Players) == controller.config.GamePlayerCap {
+		if game.Playing || len(game.Players) == con.config.GamePlayerCap {
 			continue
 		}
 
 		// Add the user to the game
 		games[i].Players = append(games[i].Players, user)
-		res = controller.db.Save(&games[i])
+		res = con.db.Save(&games[i])
 		if res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "There was an error adding you to the game. Please try again later.",
@@ -100,7 +100,7 @@ func (controller Controller) Queue(c *gin.Context) {
 }
 
 // createNewGame creates a new game and adds the user to it
-func (controller Controller) createNewGame(c *gin.Context, user *models.User) {
+func (con controller) createNewGame(c *gin.Context, user *models.User) {
 	newGameUUID := uuid.New().String()
 	game := models.Game{
 		Playing: false,
@@ -108,7 +108,7 @@ func (controller Controller) createNewGame(c *gin.Context, user *models.User) {
 		Players: []models.User{*user},
 	}
 
-	res := controller.db.Model(&models.Game{}).Preload("Players").Create(&game)
+	res := con.db.Model(&models.Game{}).Preload("Players").Create(&game)
 	if res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "There was an error creating a new game. Please try again later.",

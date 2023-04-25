@@ -8,7 +8,7 @@ import (
 )
 
 // Logout handles the logout route
-func (controller Controller) Logout(c *gin.Context) {
+func (con controller) Logout(c *gin.Context) {
 	session := sessions.Default(c)
 	session.Clear()
 	if err := session.Save(); err != nil {

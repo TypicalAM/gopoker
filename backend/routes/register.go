@@ -15,7 +15,7 @@ type RegisterData struct {
 }
 
 // Register allows the user to register a new account
-func (controller *Controller) Register(c *gin.Context) {
+func (con controller) Register(c *gin.Context) {
 	var data RegisterData
 	if err := c.ShouldBindJSON(&data); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
@@ -33,7 +33,7 @@ func (controller *Controller) Register(c *gin.Context) {
 	}
 
 	user := models.User{Username: data.Username}
-	res := controller.db.Where(&user).First(&user)
+	res := con.db.Where(&user).First(&user)
 	if res.Error == nil || res.RowsAffected > 0 {
 		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 		return
@@ -47,7 +47,7 @@ func (controller *Controller) Register(c *gin.Context) {
 
 	user.Password = string(hashedPassword)
 
-	res = controller.db.Create(&user)
+	res = con.db.Create(&user)
 	if res.Error != nil || res.RowsAffected == 0 {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
 		return

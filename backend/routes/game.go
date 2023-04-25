@@ -20,17 +20,17 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var IncorrectGameErr = errors.New("incorrect game")
+var incorrectGameErr = errors.New("incorrect game")
 
 // Game is the websocket game connection
-func (controller Controller) Game(c *gin.Context) {
-	user, err := controller.GetUser(c)
+func (con controller) Game(c *gin.Context) {
+	user, err := con.getUser(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user"})
 		return
 	}
 
-	gameModel, err := ensureCorrectGame(controller.db, user, c)
+	gameModel, err := ensureCorrectGame(con.db, user, c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect game"})
 		return
@@ -42,7 +42,7 @@ func (controller Controller) Game(c *gin.Context) {
 		return
 	}
 
-	game.Connect(controller.hub, controller.db, conn, gameModel, user)
+	game.Connect(con.hub, con.db, conn, gameModel, user)
 }
 
 // ensureCorrectGame checks if the user is in the game and the game exists
@@ -52,13 +52,13 @@ func ensureCorrectGame(db *gorm.DB, user *models.User, c *gin.Context) (*models.
 
 	gameIDInterface := session.Get(models.GameIDKey)
 	if gameIDInterface == nil || gameIDInterface.(string) != gameID {
-		return nil, IncorrectGameErr
+		return nil, incorrectGameErr
 	}
 
 	var game models.Game
 	res := db.Model(&models.Game{}).Preload("Players").Where("uuid = ?", gameID).Find(&game)
 	if res.Error != nil {
-		return nil, IncorrectGameErr
+		return nil, incorrectGameErr
 	}
 
 	for _, player := range game.Players {
@@ -67,5 +67,5 @@ func ensureCorrectGame(db *gorm.DB, user *models.User, c *gin.Context) (*models.
 		}
 	}
 
-	return nil, IncorrectGameErr
+	return nil, incorrectGameErr
 }

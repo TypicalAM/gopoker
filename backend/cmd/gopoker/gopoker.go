@@ -15,13 +15,13 @@ func main() {
 	cfg := config.New()
 
 	// Connect to the database
-	db, err := models.ConnectToDatabase(cfg)
+	db, err := models.New(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Migrate the database
-	err = models.MigrateDatabase(db)
+	err = models.Migrate(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func main() {
 	}
 
 	// Set up the router
-	router, err := routes.SetupRouter(db, cfg, fileService)
+	router, err := routes.New(db, cfg, fileService)
 	if err != nil {
 		log.Fatal(err)
 	}

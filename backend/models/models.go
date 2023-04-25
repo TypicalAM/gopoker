@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// ConnectToDatabase connects to the database using the config.
-func ConnectToDatabase(cfg *config.Config) (*gorm.DB, error) {
+// New connects to the database using the config.
+func New(cfg *config.Config) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=Europe/Warsaw",
 		cfg.DatabaseHost,
@@ -57,9 +57,9 @@ func delOrphan(db *gorm.DB) {
 	log.Println("Deleted ", res.RowsAffected, " orphan games")
 }
 
-// MigrateDatabase migrates the database.
-func MigrateDatabase(db *gorm.DB) error {
-	if err := db.AutoMigrate(&Game{}, &User{}, &Session{}); err != nil {
+// Migrate migrates the database.
+func Migrate(db *gorm.DB) error {
+	if err := db.AutoMigrate(&Game{}, &User{}, &Session{}, &Profile{}); err != nil {
 		return err
 	}
 
