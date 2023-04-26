@@ -43,14 +43,14 @@ func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 
 // SafeUser is a safe user representation.
 type SafeUser struct {
-	Username string
-	Profile  SafeProfile
+	Username string      `json:"username"`
+	Profile  SafeProfile `json:"profile"`
 }
 
 // SafeProfile is a safe profile representation.
 type SafeProfile struct {
-	DisplayName string
-	ImageURL    string
+	DisplayName string `json:"display_name"`
+	ImageURL    string `json:"image_url"`
 }
 
 // Sanitize returns a safe user representation.
@@ -63,4 +63,3 @@ func (u *User) Sanitize() SafeUser {
 		},
 	}
 }
-

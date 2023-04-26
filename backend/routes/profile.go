@@ -42,7 +42,7 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 	if userUpdateData.DisplayName != "" {
 		displayNameUpdate = true
 		user.Profile.DisplayName = userUpdateData.DisplayName
-		if res := con.db.Save(&user); res.Error != nil {
+		if res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile); res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
 			return
 		}
@@ -68,8 +68,7 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 	}
 
 	user.Profile.ImageURL = url
-	res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile)
-	if res.Error != nil {
+	if res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile); res.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
 		return
 	}

@@ -22,7 +22,7 @@ function JoinQueue() {
 					localStorage.setItem('activeGame', data.uuid);
 					setTimeout(() => {
 						window.location.replace('/game/play');
-					}, 3000);
+					}, 500);
 				} else {
 					setMessage("There was an error joining the queue. Please try again later.");
 				}
@@ -33,7 +33,7 @@ function JoinQueue() {
 	useEffect(() => {
 		if (hasRunRef.current) return;
 		hasRunRef.current = true;
-		setTimeout(handleSubmit, 3000);
+		setTimeout(handleSubmit, 500);
 	}, []);
 
 	return (
