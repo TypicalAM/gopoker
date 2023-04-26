@@ -8,6 +8,11 @@ services:
     env_file:
       - ./.env.db
 
+  db-test:
+    image: postgres:13.0-alpine
+    env_file:
+      - ./.env.db.test
+
   frontend:
     build:
       context: frontend

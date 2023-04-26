@@ -14,55 +14,66 @@ import (
 	"time"
 
 	"github.com/TypicalAM/gopoker/config"
-	"github.com/TypicalAM/gopoker/game"
 	"github.com/TypicalAM/gopoker/models"
 	"github.com/TypicalAM/gopoker/routes"
+	"github.com/TypicalAM/gopoker/services/game"
+	"github.com/TypicalAM/gopoker/services/upload"
+	"github.com/TypicalAM/gopoker/texas"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var testDB *gorm.DB
-var controller routes.Controller
-var router *gin.Engine
+var tdb *gorm.DB
+var trouter *gin.Engine
 
 // A time offset to make sure that the connection is established
 // and the hub creates the game/clients
 var wsConnectTime = 500 * time.Millisecond
 
 // setup sets up the tests
-func setup() {
+func setup() error {
 	gin.SetMode(gin.TestMode)
-	cfg, err := config.ReadConfig()
+	cfg := config.New()
+
+	db, err := models.New(cfg)
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
-	db, err := models.ConnectToTestDatabase(cfg)
-	if err != nil {
-		os.Exit(1)
+	tdb = db
+
+	if err = models.Migrate(db); err != nil {
+		return err
 	}
 
-	err = models.MigrateDatabase(db)
+	uploader, err := upload.NewCloudinary(cfg.CloudinaryURL, "test", 5*time.Second)
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
-	testDB = db
-
-	controller = routes.New(db, nil, cfg)
-	engine, err := routes.SetupRouter(db, cfg)
+	router, err := routes.New(db, cfg, uploader)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	router = engine
+	trouter = router
+	return nil
 }
 
 func TestMain(m *testing.M) {
-	setup()
-	os.Exit(m.Run())
+	if err := setup(); err != nil {
+		log.Fatal("error setting up tests:", err)
+	}
+
+	code := m.Run()
+
+	if err := teardown(); err != nil {
+		log.Fatal("error tearing down tests:", err)
+	}
+
+	os.Exit(code)
 }
 
 type userWS struct {
@@ -80,18 +91,17 @@ func createConnect(t *testing.T) ([]userWS, *httptest.Server) {
 	t.Helper()
 
 	users := make([]userWS, 3)
-	server := httptest.NewServer(router)
+	server := httptest.NewServer(trouter)
 	rawURL, _ := url.ParseRequestURI(server.URL)
 
 	for i := 0; i < 3; i++ {
 		userpass, _ := bcrypt.GenerateFromPassword([]byte(fmt.Sprintf("testpass%d", i)), bcrypt.DefaultCost)
 		user := models.User{
-			GameID:   1,
 			Username: fmt.Sprintf("user%d", i),
 			Password: string(userpass),
 		}
 
-		if res := testDB.Save(&user); res.Error != nil {
+		if res := tdb.Save(&user); res.Error != nil {
 			t.Fatalf("error creating user: %s", res.Error)
 		}
 
@@ -102,7 +112,7 @@ func createConnect(t *testing.T) ([]userWS, *httptest.Server) {
 		}
 
 		rr := httptest.NewRecorder()
-		router.ServeHTTP(rr, req)
+		trouter.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
 			t.Fatalf("error logging in user: %s", rr.Body.String())
@@ -115,7 +125,7 @@ func createConnect(t *testing.T) ([]userWS, *httptest.Server) {
 		req.AddCookie(rr.Result().Cookies()[0])
 
 		rr = httptest.NewRecorder()
-		router.ServeHTTP(rr, req)
+		trouter.ServeHTTP(rr, req)
 
 		if rr.Code != http.StatusOK {
 			t.Fatalf("error queuing user: %s", rr.Body.String())
@@ -188,12 +198,12 @@ func TestGameConnect(t *testing.T) {
 	}()
 
 	var user models.User
-	if res := testDB.First(&user, "username = ?", users[0].username); res.Error != nil {
+	if res := tdb.First(&user, "username = ?", users[0].username); res.Error != nil {
 		t.Fatalf("error finding user: %s", res.Error)
 	}
 
 	var gameModel models.Game
-	if res := testDB.First(&gameModel, "id = ?", user.GameID); res.Error != nil {
+	if res := tdb.First(&gameModel, "id = ?", user.GameID); res.Error != nil {
 		t.Fatalf("error finding game: %s", res.Error)
 	}
 
@@ -218,7 +228,7 @@ func TestBroadcast(t *testing.T) {
 			t.Fatalf("expected state message, got %s", msg.Type)
 		}
 
-		var state game.TexasHoldEm
+		var state texas.TexasHoldEm
 		if err := json.Unmarshal([]byte(msg.Data), &state); err != nil {
 			t.Fatalf("error unmarshalling state: %s", err)
 		}
@@ -253,7 +263,7 @@ func TestExampleErrors(t *testing.T) {
 			userIndex: 0,
 			msg: game.GameMessage{
 				Type: "typetype!!!",
-				Data: game.Fold,
+				Data: texas.Fold,
 			},
 		},
 	}
@@ -275,3 +285,9 @@ func TestExampleErrors(t *testing.T) {
 		}
 	}
 }
+
+// teardown deletes the test users
+func teardown() error {
+	return tdb.Delete(&models.User{}, "username LIKE ?", "user%").Error
+}
+	

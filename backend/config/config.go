@@ -13,7 +13,6 @@ type Config struct {
 	DatabaseHost       string
 	DatabasePort       string
 	DatabaseName       string
-	DatabaseTestName   string
 	CookieSecret       string
 	RequestsPerMin     int
 	ListenPort         string
@@ -36,6 +35,23 @@ func New() *Config {
 		RequestsPerMin:     getEnvInt("REQUESTS_PER_MIN", 30),
 		ListenPort:         getEnvString("LISTEN_PORT", "8080"),
 		GamePlayerCap:      getEnvInt("GAME_PLAYER_CAP", 3),
+		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
+		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
+	}
+}
+
+// NewTest returns a new Config struct for testing.
+func NewTest() *Config {
+	return &Config{
+		DatabaseUser:       getEnvString("DB_USER", "myuser"),
+		DatabasePassword:   getEnvString("DB_PASSWORD", "mypassword"),
+		DatabaseHost:       getEnvString("DB_TEST_HOST", "localhost"),
+		DatabasePort:       getEnvString("DB_PORT", "5432"),
+		DatabaseName:       getEnvString("DB_TEST_DATABASE", "mytestdatabase"),
+		CookieSecret:       "cokkie",
+		RequestsPerMin:     1000,
+		ListenPort:         "8080",
+		GamePlayerCap:      3,
 		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
 		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
 	}

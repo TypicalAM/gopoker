@@ -1,4 +1,4 @@
-package routes_test
+package routes
 
 import (
 	"bytes"
@@ -9,51 +9,61 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/models"
-	"github.com/TypicalAM/gopoker/routes"
+	"github.com/TypicalAM/gopoker/services/upload"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-var testDB *gorm.DB
-var controller routes.Controller
-var router *gin.Engine
+var tdb *gorm.DB
+var trouter *gin.Engine
 
 // setup sets up the tests
-func setup() {
+func setup() error {
 	gin.SetMode(gin.TestMode)
-	cfg, err := config.ReadConfig()
+	cfg := config.New()
+
+	db, err := models.New(cfg)
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
-	db, err := models.ConnectToTestDatabase(cfg)
-	if err != nil {
-		os.Exit(1)
+	tdb = db
+
+	if err = models.Migrate(db); err != nil {
+		return err
 	}
 
-	err = models.MigrateDatabase(db)
+	uploader, err := upload.NewCloudinary(cfg.CloudinaryURL, "test", 5*time.Second)
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
-	testDB = db
-
-	controller = routes.New(db, nil, cfg)
-	engine, err := routes.SetupRouter(db, cfg)
+	router, err := New(db, cfg, uploader)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	router = engine
+	trouter = router
+
+	return nil
 }
 
 func TestMain(m *testing.M) {
-	setup()
+	if err := setup(); err != nil {
+		log.Fatalf("error setting up tests: %s", err)
+	}
+
 	code := m.Run()
+
+	if err := teardown(); err != nil {
+		log.Fatalf("error tearing down tests: %s", err)
+	}
+
 	os.Exit(code)
 }
 
@@ -83,7 +93,7 @@ func TestRegister(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			router.ServeHTTP(rr, req)
+			trouter.ServeHTTP(rr, req)
 
 			if status := rr.Code; status != tc.code {
 				t.Errorf("handler returned wrong status code: got %v want %v", status, tc.code)
@@ -96,23 +106,21 @@ func TestRegister(t *testing.T) {
 func createTestUsers() error {
 	user1pass, _ := bcrypt.GenerateFromPassword([]byte("testpass1"), bcrypt.DefaultCost)
 	user1 := models.User{
-		GameID:   1,
 		Username: "user1",
 		Password: string(user1pass),
 	}
 
-	if res := testDB.Save(&user1); res.Error != nil {
+	if res := tdb.Save(&user1); res.Error != nil {
 		return res.Error
 	}
 
 	user2pass, _ := bcrypt.GenerateFromPassword([]byte("testpass2"), bcrypt.DefaultCost)
 	user2 := models.User{
-		GameID:   1,
 		Username: "user2",
 		Password: string(user2pass),
 	}
 
-	if res := testDB.Save(&user2); res.Error != nil {
+	if res := tdb.Save(&user2); res.Error != nil {
 		return res.Error
 	}
 
@@ -149,7 +157,7 @@ func TestLogin(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			router.ServeHTTP(rr, req)
+			trouter.ServeHTTP(rr, req)
 
 			if status := rr.Code; status != tc.code {
 				t.Errorf("handler returned wrong status code: got %v want %v", status, tc.code)
@@ -184,7 +192,7 @@ func logInUser(body string) (error, *http.Cookie) {
 	}
 
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	trouter.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		return fmt.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK), nil
@@ -229,7 +237,7 @@ func TestLogout(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			router.ServeHTTP(rr, req)
+			trouter.ServeHTTP(rr, req)
 
 			if status := rr.Code; status != tc.code {
 				t.Errorf("handler returned wrong status code: got %v want %v", status, tc.code)
@@ -255,7 +263,7 @@ func TestQueue(t *testing.T) {
 
 	req.AddCookie(cookie)
 	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
+	trouter.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -266,7 +274,7 @@ func TestQueue(t *testing.T) {
 	}
 
 	var game models.Game
-	testDB.Model(&models.Game{}).Preload("Players").Where("uuid = ?", QueueResponse.UUID).First(&game)
+	tdb.Model(&models.Game{}).Preload("Players").Where("uuid = ?", QueueResponse.UUID).First(&game)
 	if len(game.Players) != 1 {
 		t.Errorf("handler returned wrong number of players: got %v want %v", len(game.Players), 1)
 	}
@@ -274,4 +282,9 @@ func TestQueue(t *testing.T) {
 	if game.Players[0].Username != "user1" {
 		t.Errorf("handler returned wrong player: got %v want %v", game.Players[0].Username, "user1")
 	}
+}
+
+// teardown removes the test users from the database
+func teardown() error {
+	return tdb.Where("username = ?", "user1").Or("username = ?", "user2").Delete(&models.User{}).Error
 }

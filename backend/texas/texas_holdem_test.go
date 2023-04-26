@@ -129,7 +129,7 @@ func TestSanitizeState(t *testing.T) {
 // testPlayerAction is a struct used to automate player actions.
 type testPlayerAction struct {
 	player string
-	action pokerAction
+	action PokerAction
 }
 
 // handlePlayerAction handles a player action.
