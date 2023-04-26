@@ -3,6 +3,7 @@ package texas
 import (
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/chehsunliu/poker"
@@ -11,10 +12,22 @@ import (
 // testGame creates a test game.
 func testGame() *TexasHoldEm {
 	texas := NewTexasHoldEm()
-	texas.AddPlayer("Player 0", 100)
-	texas.AddPlayer("Player 1", 100)
-	texas.AddPlayer("Player 2", 100)
-	texas.StartGame()
+	if err := texas.AddPlayer("Player 0", 100); err != nil {
+		os.Exit(1)
+	}
+
+	if err := texas.AddPlayer("Player 1", 100); err != nil {
+		os.Exit(1)
+	}
+
+	if err := texas.AddPlayer("Player 2", 100); err != nil {
+		os.Exit(1)
+	}
+
+	if err := texas.StartGame(); err != nil {
+		os.Exit(1)
+	}
+
 	return texas
 }
 

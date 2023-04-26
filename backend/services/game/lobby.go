@@ -86,7 +86,9 @@ func (l *lobby) send(client *Client, gameMsg *GameMessage) {
 	select {
 	case client.send <- *gameMsg:
 	default:
-		l.disconnect(client)
+		if err := l.disconnect(client); err != nil {
+			log.Printf("[%s] Cannot disconnect client: %s", l.uuid[:10], err)
+		}
 	}
 }
 

@@ -184,7 +184,9 @@ func TestLogin(t *testing.T) {
 }
 
 func logInUser(body string) (error, *http.Cookie) {
-	createTestUsers()
+	if err := createTestUsers(); err != nil {
+		return err, nil
+	}
 
 	req, err := http.NewRequest("POST", "/api/login", bytes.NewBuffer([]byte(body)))
 	if err != nil {

@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -27,7 +26,6 @@ const (
 
 var (
 	newline = []byte{'\n'}
-	space   = []byte{' '}
 )
 
 // msgType is the type of the game message.
@@ -35,9 +33,9 @@ type msgType string
 
 const (
 	MsgState  msgType = "state"
-	MsgError          = "error"
-	MsgInput          = "input"
-	MsgAction         = "action"
+	MsgError  msgType = "error"
+	MsgInput  msgType = "input"
+	MsgAction msgType = "action"
 )
 
 // GameMessage is a message that is used to communicate between the player and the game server.
@@ -58,11 +56,11 @@ type Client struct {
 // Connect takes the websocket connection and bootstraps the client
 func newClient(srv *Server, l *lobby, conn *websocket.Conn, user *models.User) *Client {
 	return &Client{
-		srv:  srv,
-		conn: conn,
+		srv:   srv,
+		conn:  conn,
 		lobby: l,
-		user: user,
-		send: make(chan GameMessage, 256),
+		user:  user,
+		send:  make(chan GameMessage, 256),
 	}
 }
 
@@ -74,14 +72,17 @@ func (c *Client) readLoop() {
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.conn.SetPongHandler(func(string) error { return c.conn.SetReadDeadline(time.Now().Add(pongWait)) })
+	if err := c.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		log.Println(err)
+		return
+	}
 
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				log.Printf("[%s] Connection aborted for %s: %v", c.lobby.uuid[:10], c.user.Username, err)
 			}
 			return
 		}
@@ -89,8 +90,8 @@ func (c *Client) readLoop() {
 		// Try to parse the message
 		var gameMsg GameMessage
 		if err := json.Unmarshal(message, &gameMsg); err != nil {
-			log.Println(fmt.Sprintf("[%s] Invalid message from %s", c.lobby.uuid[:10], c.user.Username))
-			log.Println(fmt.Sprintf("[%s] %s", c.lobby.uuid[:10], err))
+			log.Printf("[%s] Invalid message from %s", c.lobby.uuid[:10], c.user.Username)
+			log.Printf("[%s] %s", c.lobby.uuid[:10], err)
 			continue
 		}
 
@@ -111,10 +112,16 @@ func (c *Client) writeLoop() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				log.Printf("[%s] Couldn't set the write deadline: %s", c.lobby.uuid[:10], err)
+				return
+			}
+
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
+					log.Printf("[%s] Couldn't write the close message: %s", c.lobby.uuid[:10], err)
+				}
 				return
 			}
 
@@ -136,7 +143,11 @@ func (c *Client) writeLoop() {
 
 			// Add queued chat messages to the current websocket message.
 			for i := 0; i < len(c.send); i++ {
-				w.Write(newline)
+				if _, err := w.Write(newline); err != nil {
+					log.Printf("[%s] Couldn't write the newline: %s", c.lobby.uuid[:10], err)
+					return
+				}
+
 				messageBytes, err := json.Marshal(<-c.send)
 				if err != nil {
 					log.Printf("[%s] Couldn't marshal the message for sending: %s", c.lobby.uuid[:10], err)
@@ -155,7 +166,11 @@ func (c *Client) writeLoop() {
 			}
 
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				log.Printf("[%s] Couldn't set the write deadline: %s", c.lobby.uuid[:10], err)
+				return
+			}
+
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				log.Printf("[%s] Couldn't write the ping message: %s", c.lobby.uuid[:10], err)
 				return

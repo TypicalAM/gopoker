@@ -12,19 +12,19 @@ type pokerRound string
 
 const (
 	PreFlop pokerRound = "preflop"
-	Flop               = "flop"
-	Turn               = "turn"
-	River              = "river"
+	Flop    pokerRound = "flop"
+	Turn    pokerRound = "turn"
+	River   pokerRound = "river"
 )
 
 type PokerAction string
 
 const (
 	None  PokerAction = "none"
-	Call              = "call"
-	Raise             = "raise"
-	Check             = "check"
-	Fold              = "fold"
+	Call  PokerAction = "call"
+	Raise PokerAction = "raise"
+	Check PokerAction = "check"
+	Fold  PokerAction = "fold"
 )
 
 var actionMap = map[string]PokerAction{
@@ -348,7 +348,10 @@ func (t *TexasHoldEm) Disconnect(username string) error {
 	}
 
 	if index == t.CurrentPlayer {
-		t.AdvanceState(username, Fold)
+		if err := t.AdvanceState(username, Fold); err != nil {
+			return err
+		}
+
 		return OwnTurnDisconnectErr
 	}
 

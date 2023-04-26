@@ -263,7 +263,7 @@ func TestExampleErrors(t *testing.T) {
 			userIndex: 0,
 			msg: game.GameMessage{
 				Type: "typetype!!!",
-				Data: texas.Fold,
+				Data: string(texas.Fold),
 			},
 		},
 	}
@@ -290,4 +290,3 @@ func TestExampleErrors(t *testing.T) {
 func teardown() error {
 	return tdb.Delete(&models.User{}, "username LIKE ?", "user%").Error
 }
-	

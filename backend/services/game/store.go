@@ -23,19 +23,6 @@ func (s *gameStore) load(UUID string) (*lobby, bool) {
 	return game, ok
 }
 
-// loadAll gets all the games from the store.
-func (s *gameStore) loadAll() []*lobby {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	games := make([]*lobby, 0, len(s.games))
-	for _, game := range s.games {
-		games = append(games, game)
-	}
-
-	return games
-}
-
 // save saves a game in the store.
 func (s *gameStore) save(l *lobby) {
 	s.mutex.Lock()
