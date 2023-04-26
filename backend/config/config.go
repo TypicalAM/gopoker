@@ -6,21 +6,41 @@ import (
 	"strings"
 )
 
+// FileUploadService is an enum for the file upload service.
+type FileUploadService int
+
+const (
+	Cloudinary FileUploadService = iota
+	Local
+)
+
+var fileUploadMap = map[string]FileUploadService{
+	"cloudinary": Cloudinary,
+	"local":      Local,
+}
+
 // Config is a struct that holds the configuration for the application.
 type Config struct {
-	DatabaseUser       string
-	DatabasePassword   string
-	DatabaseHost       string
-	DatabasePort       string
-	DatabaseName       string
+	// Database related
+	DatabaseUser     string
+	DatabasePassword string
+	DatabaseHost     string
+	DatabasePort     string
+	DatabaseName     string
+
+	// Game related
+	GamePlayerCap int
+
+	// Server related
+	ListenPort         string
 	CookieSecret       string
 	RequestsPerMin     int
-	ListenPort         string
-	GamePlayerCap      int
 	CorsTrustedOrigins []string
 
-	// TODO: Make this optional
-	CloudinaryURL string
+	// Upload related
+	FileUploadType FileUploadService
+	CloudinaryURL  string
+	FileUploadPath string
 }
 
 // New returns a new Config struct.
@@ -36,7 +56,9 @@ func New() *Config {
 		ListenPort:         getEnvString("LISTEN_PORT", "8080"),
 		GamePlayerCap:      getEnvInt("GAME_PLAYER_CAP", 3),
 		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
+		FileUploadType:     getEnvFileUpload("FILE_UPLOAD_TYPE", Local),
 		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
+		FileUploadPath:     getEnvString("FILE_UPLOAD_PATH", "uploads"),
 	}
 }
 
@@ -58,7 +80,6 @@ func NewTest() *Config {
 }
 
 // getEnvString gets the environment variable or returns the default value.
-// TODO: Move to generics
 func getEnvString(key string, fallback string) string {
 	val := os.Getenv(key)
 	if val == "" {
@@ -77,4 +98,19 @@ func getEnvInt(key string, fallback int) int {
 	}
 
 	return num
+}
+
+// getEnvFileUpload returns the file upload service.
+func getEnvFileUpload(key string, fallback FileUploadService) FileUploadService {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+
+	service, ok := fileUploadMap[val]
+	if !ok {
+		return fallback
+	}
+
+	return service
 }

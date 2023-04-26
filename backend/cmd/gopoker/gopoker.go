@@ -30,7 +30,16 @@ func main() {
 	}
 
 	// Set up the file service
-	uploader, err := upload.NewCloudinary(cfg.CloudinaryURL, "profile_images", 5*time.Second)
+	var uploader upload.Uploader
+	switch cfg.FileUploadType {
+	case config.Local:
+		uploader, err = upload.NewLocal(cfg.FileUploadPath)
+	case config.Cloudinary:
+		uploader, err = upload.NewCloudinary(cfg.CloudinaryURL, "profile_images", 5*time.Second)
+	default:
+		log.Fatalf("invalid file upload type: %v", cfg.FileUploadType)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}

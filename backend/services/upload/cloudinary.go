@@ -8,8 +8,8 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
-// CloudinaryService is a service for uploading files to Cloudinary.
-type CloudinaryService struct {
+// CloudinaryUploader is a service for uploading files to Cloudinary.
+type CloudinaryUploader struct {
 	cld        *cloudinary.Cloudinary
 	folderName string
 	timeout    time.Duration
@@ -19,10 +19,10 @@ type CloudinaryService struct {
 func NewCloudinary(url string, folderName string, timeout time.Duration) (Uploader, error) {
 	cld, err := cloudinary.NewFromURL(url)
 	if err != nil {
-		return CloudinaryService{}, err
+		return CloudinaryUploader{}, err
 	}
 
-	return CloudinaryService{
+	return CloudinaryUploader{
 		cld:        cld,
 		folderName: folderName,
 		timeout:    timeout,
@@ -30,15 +30,15 @@ func NewCloudinary(url string, folderName string, timeout time.Duration) (Upload
 }
 
 // UploadFile uploads a file to Cloudinary.
-func (service CloudinaryService) UploadFile(data string) (string, error) {
+func (u CloudinaryUploader) UploadFile(data string) (string, error) {
 	if !isImage(data) {
 		return "", ErrInvalidImage
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), service.timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), u.timeout)
 	defer cancel()
 
-	res, err := service.cld.Upload.Upload(ctx, data, uploader.UploadParams{Folder: service.folderName})
+	res, err := u.cld.Upload.Upload(ctx, data, uploader.UploadParams{Folder: u.folderName})
 	if err != nil {
 		return "", err
 	}
@@ -47,7 +47,7 @@ func (service CloudinaryService) UploadFile(data string) (string, error) {
 }
 
 // DeleteFile deletes a file from Cloudinary.
-func (service CloudinaryService) DeleteFile(url string) error {
+func (u CloudinaryUploader) DeleteFile(url string) error {
 	// TODO: Implement
 	return nil
 }

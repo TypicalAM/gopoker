@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -60,6 +61,10 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "error uploading"})
 		return
+	}
+
+	if err = con.uploader.DeleteFile(user.Profile.ImageURL); err != nil {
+		log.Println("error deleting old image:", err)
 	}
 
 	user.Profile.ImageURL = url

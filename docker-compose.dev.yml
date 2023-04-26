@@ -29,6 +29,7 @@ services:
     command: air
     volumes:
       - ./backend:/usr/src/gopoker
+      - upload_data_dev:/var/uploads
     ports:
       - 8080:8080
     env_file:
@@ -39,3 +40,4 @@ services:
 
 volumes:
   postgres_data_dev:
+  upload_data_dev:

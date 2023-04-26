@@ -10,6 +10,9 @@ import (
 // ErrInvalidImage is returned when the data is not an image.
 var ErrInvalidImage = errors.New("invalid image")
 
+// ErrNonExistentFile is returned when the file does not exist.
+var ErrNonExistentFile = errors.New("non-existent file")
+
 // Uploader interface for file upload services.
 type Uploader interface {
 	UploadFile(data string) (string, error)

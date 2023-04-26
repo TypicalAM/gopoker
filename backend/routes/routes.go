@@ -37,6 +37,7 @@ func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine
 	router.Use(middleware.General())
 
 	// Create the controller
+	// TODO: Change the name of hub to something more appropriate
 	hub := game.New(db)
 	go hub.Run()
 	controller := controller{
@@ -44,6 +45,11 @@ func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine
 		hub:      hub,
 		config:   cfg,
 		uploader: uploader,
+	}
+
+	// Serve the static files if we are uploading to the local file system
+	if cfg.FileUploadType == config.Local {
+		router.Static("/uploads", cfg.FileUploadPath)
 	}
 
 	// Set up the api
