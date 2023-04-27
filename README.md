@@ -49,9 +49,9 @@ The backend is written in go with:
 
 Here are the things that I have not finished yet:
 - [ ] Adding comments to texas_holdem.go
-- [ ] Adding user profile image uploads 
-- [ ] Tidying up the websocket logic (hub, client, game, state)
-- [ ] A docker-compose to actually build the services
+- [x] Adding user profile image uploads 
+- [x] Tidying up the websocket logic (hub, client, game, state)
+- [x] A docker-compose to actually build the services
 - [ ] Adding the unsecure credit card prompt (on the unsecure branch for the PUT security presentation)
 
 ## 📸 Here is a demo
@@ -65,4 +65,3 @@ Here is some basic usage:
 <p align="center">
     <img src="assets/basic game 2.png" />
 </p>
-
