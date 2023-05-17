@@ -15,7 +15,7 @@ func NoAuth() gin.HandlerFunc {
 			return
 		}
 
-		c.Redirect(http.StatusTemporaryRedirect, "/admin")
+		c.JSON(http.StatusConflict, gin.H{"error": "You are already authenticated"})
 		c.Abort()
 	}
 }
