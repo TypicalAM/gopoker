@@ -41,7 +41,7 @@ func (con controller) Game(c *gin.Context) {
 		return
 	}
 
-	con.hub.Connect(conn, game, user)
+	con.gameSrv.Connect(conn, game, user)
 }
 
 // ensureCorrectGame checks if the user is in the game and the game exists

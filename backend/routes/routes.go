@@ -15,7 +15,7 @@ import (
 // controller holds all the variables needed for routes to perform their logic
 type controller struct {
 	db       *gorm.DB
-	hub      *game.Server
+	gameSrv  *game.Server
 	config   *config.Config
 	uploader upload.Uploader
 }
@@ -37,13 +37,12 @@ func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine
 	router.Use(middleware.Session(db))
 	router.Use(middleware.General())
 
-	// Create the controller
-	// TODO: Change the name of hub to something more appropriate
-	hub := game.New(db)
-	go hub.Run()
+	// Create the game server and the controller
+	gameSrv := game.New(db)
+	go gameSrv.Run()
 	controller := controller{
 		db:       db,
-		hub:      hub,
+		gameSrv:  gameSrv,
 		config:   cfg,
 		uploader: uploader,
 	}
