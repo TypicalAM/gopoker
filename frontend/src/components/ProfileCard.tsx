@@ -24,15 +24,14 @@ function ProfileCard() {
 	const [editMode, setEditMode] = React.useState<boolean>(false);
 
 	const fetchProfile = () => {
-		fetch('http://localhost:8080/api/profile', {
+		fetch(process.env.REACT_APP_API_URL + '/api/profile', {
 			method: 'GET',
 			credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
 		})
 			.then((res) => res.json() as Promise<ProfileData>)
 			.then((data) => {
-				console.log(data.user.profile.image_url);
-				setImage("http://localhost:8080" + data.user.profile.image_url + "?" + Date.now());
+				setImage(`${process.env.REACT_APP_API_URL}${data.user.profile.image_url}?date=${Date.now()}`);
 				setUsername(data.user.username);
 				setDisplayName(data.user.profile.display_name);
 			})
@@ -46,7 +45,7 @@ function ProfileCard() {
 		const reader = new FileReader();
 		reader.readAsDataURL(files![0]);
 		reader.onload = () => {
-			fetch('http://localhost:8080/api/profile', {
+			fetch(process.env.REACT_APP_API_URL + '/api/profile', {
 				method: 'PUT',
 				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },
@@ -57,10 +56,7 @@ function ProfileCard() {
 			})
 				.then((res) => res.json() as Promise<ProfileData>)
 				.then((data) => {
-					console.log(data.user.profile.image_url);
-					console.log(data.user.profile.display_name);
-					console.log("HALO!");
-					setImage("localhost:8080" + data.user.profile.image_url + "?date=" + Date.now());
+					setImage(`${process.env.REACT_APP_API_URL}${data.user.profile.image_url}?date=${Date.now()}`);
 					setUsername(data.user.username);
 					setDisplayName(data.user.profile.display_name);
 				})

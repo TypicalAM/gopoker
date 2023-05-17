@@ -7,7 +7,7 @@ function JoinQueue() {
 	const id = require('uuid-readable');
 
 	const handleSubmit = () => {
-		fetch('http://localhost:8080/api/game/queue', {
+		fetch(process.env.REACT_APP_API_URL + '/api/game/queue', {
 			method: 'POST',
 			credentials: 'include',
 			headers: {

@@ -18,7 +18,7 @@ function RegisterForm() {
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
-		fetch('http://localhost:8080/api/register', {
+		fetch(process.env.REACT_APP_API_URL + '/api/register', {
 			method: 'POST',
 			body: JSON.stringify({ username, password }),
 			headers: {

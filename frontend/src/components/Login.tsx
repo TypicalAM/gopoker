@@ -18,7 +18,7 @@ function LoginForm() {
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
-		fetch('http://localhost:8080/api/login', {
+		fetch(process.env.REACT_APP_API_URL + '/api/login', {
 			method: 'POST',
 			credentials: 'include',
 			body: JSON.stringify({ username, password }),

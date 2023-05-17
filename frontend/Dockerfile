@@ -3,6 +3,8 @@
 ############################
 FROM node:14-alpine AS builder
 
+ARG API_URL
+ENV REACT_APP_API_URL $API_URL
 ENV NODE_ENV production
 
 # Add a work directory

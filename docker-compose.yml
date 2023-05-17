@@ -9,7 +9,10 @@ services:
       - ./.env.db
 
   frontend_prod:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - API_URL=${API_URL:-http://localhost:8080}
     ports:
       - 3000:3000
     env_file:
@@ -19,7 +22,8 @@ services:
     build: ./backend
     command: /go/main 
     volumes:
-      - './backend:/usr/src/app'
+      - ./backend:/usr/src/app
+      - upload_data_dev:/var/uploads
     ports:
       - 8080:8080
     env_file:
@@ -30,3 +34,4 @@ services:
 
 volumes:
   postgres_data:
+  upload_data_dev:

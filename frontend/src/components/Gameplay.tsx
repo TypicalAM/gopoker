@@ -70,7 +70,7 @@ function Gameplay() {
 		setStatusMessage('Connecting to websocket...');
 
 		// Connect to the websocket
-		const connString = 'ws://localhost:8080/api/game/id/' + activeGame;
+		const connString = `ws://${process.env.REACT_APP_API_URL?.split('://').pop()}/api/game/id/${activeGame}`;
 		ws.current = new WebSocket(connString);
 
 		ws.current.onopen = () => {
