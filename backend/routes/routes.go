@@ -23,10 +23,11 @@ type controller struct {
 // New creates a new router with all the routes
 func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine, error) {
 	store := cookie.NewStore([]byte(cfg.CookieSecret))
+	log.Println(cfg.CookieSecret)
 
 	// Allow cors
 	corsCofig := cors.DefaultConfig()
-	corsCofig.AllowOrigins = cfg.CorsTrustedOrigins
+	corsCofig.AllowOrigins = cfg.TrustedOrigins
 	corsCofig.AllowCredentials = true
 
 	// Default middleware

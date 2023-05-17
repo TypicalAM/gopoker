@@ -32,10 +32,10 @@ type Config struct {
 	GamePlayerCap int
 
 	// Server related
-	ListenPort         string
-	CookieSecret       string
-	RequestsPerMin     int
-	CorsTrustedOrigins []string
+	ListenPort     string
+	CookieSecret   string
+	RequestsPerMin int
+	TrustedOrigins []string
 
 	// Upload related
 	FileUploadType FileUploadService
@@ -46,36 +46,36 @@ type Config struct {
 // New returns a new Config struct.
 func New() *Config {
 	return &Config{
-		DatabaseUser:       getEnvString("DB_USER", "myuser"),
-		DatabasePassword:   getEnvString("DB_PASSWORD", "mypassword"),
-		DatabaseHost:       getEnvString("DB_HOST", "localhost"),
-		DatabasePort:       getEnvString("DB_PORT", "5432"),
-		DatabaseName:       getEnvString("DB_DATABASE", "mydatabase"),
-		CookieSecret:       getEnvString("COOKIE_SECRET", "mysecret"),
-		RequestsPerMin:     getEnvInt("REQUESTS_PER_MIN", 30),
-		ListenPort:         getEnvString("LISTEN_PORT", "8080"),
-		GamePlayerCap:      getEnvInt("GAME_PLAYER_CAP", 3),
-		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
-		FileUploadType:     getEnvFileUpload("FILE_UPLOAD_TYPE", Local),
-		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
-		FileUploadPath:     getEnvString("FILE_UPLOAD_PATH", "uploads"),
+		DatabaseUser:     getEnvString("DB_USER", "myuser"),
+		DatabasePassword: getEnvString("DB_PASSWORD", "mypassword"),
+		DatabaseHost:     getEnvString("DB_HOST", "localhost"),
+		DatabasePort:     getEnvString("DB_PORT", "5432"),
+		DatabaseName:     getEnvString("DB_DATABASE", "mydatabase"),
+		CookieSecret:     getEnvString("COOKIE_SECRET", "mysecret"),
+		RequestsPerMin:   getEnvInt("REQUESTS_PER_MIN", 30),
+		ListenPort:       getEnvString("LISTEN_PORT", "8080"),
+		GamePlayerCap:    getEnvInt("GAME_PLAYER_CAP", 3),
+		TrustedOrigins:   strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
+		FileUploadType:   getEnvFileUpload("FILE_UPLOAD_TYPE", Local),
+		CloudinaryURL:    getEnvString("CLOUDINARY_URL", ""),
+		FileUploadPath:   getEnvString("FILE_UPLOAD_PATH", "uploads"),
 	}
 }
 
 // NewTest returns a new Config struct for testing.
 func NewTest() *Config {
 	return &Config{
-		DatabaseUser:       getEnvString("DB_USER", "myuser"),
-		DatabasePassword:   getEnvString("DB_PASSWORD", "mypassword"),
-		DatabaseHost:       getEnvString("DB_TEST_HOST", "localhost"),
-		DatabasePort:       getEnvString("DB_PORT", "5432"),
-		DatabaseName:       getEnvString("DB_TEST_DATABASE", "mytestdatabase"),
-		CookieSecret:       "cokkie",
-		RequestsPerMin:     1000,
-		ListenPort:         "8080",
-		GamePlayerCap:      3,
-		CorsTrustedOrigins: strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
-		CloudinaryURL:      getEnvString("CLOUDINARY_URL", ""),
+		DatabaseUser:     getEnvString("DB_USER", "myuser"),
+		DatabasePassword: getEnvString("DB_PASSWORD", "mypassword"),
+		DatabaseHost:     getEnvString("DB_TEST_HOST", "localhost"),
+		DatabasePort:     getEnvString("DB_PORT", "5432"),
+		DatabaseName:     getEnvString("DB_TEST_DATABASE", "mytestdatabase"),
+		CookieSecret:     "cokkie",
+		RequestsPerMin:   1000,
+		ListenPort:       "8080",
+		GamePlayerCap:    3,
+		TrustedOrigins:   strings.Split(getEnvString("CORS_TRUSTED_ORIGINS", "http://localhost:3000"), ","),
+		CloudinaryURL:    getEnvString("CLOUDINARY_URL", ""),
 	}
 }
 
