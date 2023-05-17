@@ -70,7 +70,12 @@ function Gameplay() {
 		setStatusMessage('Connecting to websocket...');
 
 		// Connect to the websocket
-		const connString = `ws://${process.env.REACT_APP_API_URL?.split('://').pop()}/api/game/id/${activeGame}`;
+		if (process.env.REACT_APP_API_URL?.split('://').length !== 2) {
+			console.error('Invalid API URL');
+			return;
+		}
+
+		const connString = `${process.env.REACT_APP_API_URL?.split('://')[0] === 'http' ? 'ws://' : 'wss://'}${process.env.REACT_APP_API_URL?.split('://').pop()}/api/game/id/${activeGame}`;
 		ws.current = new WebSocket(connString);
 
 		ws.current.onopen = () => {
