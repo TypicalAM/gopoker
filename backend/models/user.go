@@ -18,13 +18,26 @@ type User struct {
 
 // Profile holds information about a user's profile.
 type Profile struct {
-	UserID      uint
+	gorm.Model
+	UserID      uint `gorm:"unique"`
 	DisplayName string
 	ImageURL    string
 }
 
 // AfterCreate is a hook that is called to make sure that a profile is created for the user.
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
+	log.Println("Creating profile for user", u.Username)
+
+	var count int64
+	if res := tx.Model(&u.Profile).Where("user_id = ?", u.ID).Count(&count); res.Error != nil {
+		return res.Error
+	}
+
+	if count > 0 {
+		log.Println("User already has a profile")
+		return
+	}
+
 	profile := Profile{
 		UserID:      u.ID,
 		DisplayName: u.Username,
