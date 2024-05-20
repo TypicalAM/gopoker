@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Profile fetches the user's profile.
@@ -21,6 +22,7 @@ func (con controller) Profile(c *gin.Context) {
 type ProfileUpdateData struct {
 	DisplayName string `json:"display_name,omitempty"`
 	ImageData   string `json:"image_data,omitempty"`
+	Password    string `json:"password,omitempty"`
 }
 
 // ProfileUpdate updates the user's profile.
@@ -38,9 +40,9 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 		return
 	}
 
-	var displayNameUpdate bool
+	log.Printf("%+v\n", userUpdateData)
+
 	if userUpdateData.DisplayName != "" {
-		displayNameUpdate = true
 		user.Profile.DisplayName = userUpdateData.DisplayName
 		if res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile); res.Error != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
@@ -48,29 +50,36 @@ func (con controller) ProfileUpdate(c *gin.Context) {
 		}
 	}
 
-	if userUpdateData.ImageData == "" {
-		if displayNameUpdate {
-			c.JSON(http.StatusOK, gin.H{"user": user.Sanitize()})
+	if userUpdateData.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userUpdateData.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
 			return
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no data to update"})
+		user.Password = string(hashedPassword)
+		if res := con.db.Save(&user); res.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving user"})
+			return
+		}
 	}
 
-	url, err := con.uploader.UploadFile(userUpdateData.ImageData)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	if userUpdateData.ImageData != "" {
+		url, err := con.uploader.UploadFile(userUpdateData.ImageData)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	if err = con.uploader.DeleteFile(user.Profile.ImageURL); err != nil {
-		log.Println("error deleting old image:", err)
-	}
+		if err = con.uploader.DeleteFile(user.Profile.ImageURL); err != nil {
+			log.Println("error deleting old image:", err)
+		}
 
-	user.Profile.ImageURL = url
-	if res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile); res.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "error saving"})
-		return
+		user.Profile.ImageURL = url
+		if res := con.db.Model(user.Profile).Where("user_id = ?", user.ID).Updates(user.Profile); res.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error saving"})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"user": user.Sanitize()})
