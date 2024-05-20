@@ -22,7 +22,7 @@ function Sidebar() {
 			<div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
 				<a href="/" className="flex items-center pl-2.5 mb-5">
 					<img src="https://flowbite.com/docs/images/logo.svg" className="h-6 mr-3 sm:h-7" alt="Flowbite Logo" />
-					<span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">Poker Pro!</span>
+					<span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white">GoPoker</span>
 				</a>
 				<ul className="space-y-2 font-medium">
 					<li>
@@ -71,7 +71,7 @@ function Sidebar() {
 					{isLoggedIn &&
 						<li>
 							<a href="/profile" className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">
-								<svg aria-hidden="true" className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+								<svg aria-hidden="true" className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
 								<span className="flex-1 ml-3 whitespace-nowrap">Profile</span>
 							</a>
 						</li>

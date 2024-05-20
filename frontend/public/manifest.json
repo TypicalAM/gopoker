@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Gopoker",
+  "name": "Application for playing poker Texas Hold'em online",
   "icons": [
     {
       "src": "favicon.ico",

@@ -6,27 +6,30 @@ function JoinQueue() {
 	const hasRunRef = React.useRef(false);
 	const id = require('uuid-readable');
 
-	const handleSubmit = () => {
-		fetch(process.env.REACT_APP_API_URL + '/api/game/queue', {
-			method: 'POST',
-			credentials: 'include',
-			headers: {
-				'Content-Type': 'application/json',
-			},
+	const handleSubmit = async () => {
+		let resp = await fetch(process.env.REACT_APP_API_URL + '/api/game/queue', {
+			method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }
 		})
-			.then(response => response.json())
-			.then(data => {
-				if (data.uuid) {
-					let shakespear = id.short(data.uuid);
-					setMessage("Joining game: " + shakespear);
-					localStorage.setItem('activeGame', data.uuid);
-					setTimeout(() => {
-						window.location.replace('/game/play');
-					}, 500);
-				} else {
-					setMessage("There was an error joining the queue. Please try again later.");
-				}
-			})
+
+		if (resp.status === 401) {
+			localStorage.setItem('isAuthenticated', 'false');
+			window.location.replace('/login');
+			return
+		}
+
+		let data = await resp.json()
+
+		if (data.uuid) {
+			let shakespear = id.short(data.uuid);
+			setMessage("Joining game: " + shakespear);
+			localStorage.setItem('activeGame', data.uuid);
+			setTimeout(() => {
+				window.location.replace('/game/play');
+			}, 500);
+		} else {
+			setMessage("There was an error joining the queue. Please try again later.");
+		}
+
 		setLoading(false);
 	}
 

@@ -45,8 +45,8 @@ function Table(props: TableProps) {
 	}, [props.state])
 
 	return (
-		<div className="w-full p-4 h-max">
-			<div className="flex flex-col bg-gradient-to-br from-gray-800 to-gray-700 h-full w-full rounded-xl space-y-10 pb-5">
+		<div className="w-full p-4">
+			<div className="flex flex-col dark:bg-gradient-to-br bg-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl space-y-10 p-0">
 				<div className="top-0 left-0 pl-4 pt-2">
 					<h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
 						Pot <span className="ml-2 text-red-500">{props.state.Pot}</span>
@@ -57,7 +57,7 @@ function Table(props: TableProps) {
 					<h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
 						Current Bet <span className="ml-2 text-emerald-500">{props.state.ActiveBet}</span>
 					</h1>
-					<div className="flex justify-center space-x-4 bg-gray-800 rounded-xl p-3">
+					<div className="flex items-center bg-gray-300 dark:bg-gray-800 rounded-xl p-3 flex-wrap">
 						{communityCards.map((card, _) => {
 							if (!card) {
 								return <PlayingCard {...{ Value: null, IsCommunity: true }} />
@@ -69,7 +69,7 @@ function Table(props: TableProps) {
 					</div>
 				</div>
 
-				<div className="flex flex-row justify-center items-center">
+				<div className="flex justify-center flex-wrap">
 
 					<PlayerCard {...{
 						Value: props.state.Players[0],
@@ -99,38 +99,42 @@ function Table(props: TableProps) {
 
 				{
 					myIndex !== -1 && props.state.CurrentPlayer === myIndex ? (
-						<div className="flex justify-end h-14 mb-4">
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gradient-to-br from-red-400 to-red-500 hover:bg-gradient-to-br hover:from-red-500 hover:to-red-500" onClick={() => {
-								if (props.conn) {
-									let mess: GameMessage = { type: MsgType.Action, data: "fold" }
-									props.conn.send(JSON.stringify(mess))
-								}
-							}}> Fold </button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800 hover:bg-gray-900" onClick={() => {
-								if (props.conn) {
-									let mess: GameMessage = { type: MsgType.Action, data: "check" }
-									props.conn.send(JSON.stringify(mess))
-								}
-							}}>Check</button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800 hover:bg-gray-900" onClick={() => {
-								if (props.conn) {
-									let mess: GameMessage = { type: MsgType.Action, data: "call" }
-									props.conn.send(JSON.stringify(mess))
-								}
-							}}>Call</button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gradient-to-br from-emerald-400 to-emerald-500 hover:bg-gradient-to-br hover:from-emerald-500 hover:to-emerald-500" onClick={() => {
-								if (props.conn) {
-									let mess: GameMessage = { type: MsgType.Action, data: "raise" }
-									props.conn.send(JSON.stringify(mess))
-								}
-							}}>Raise</button>
+						<div className="flex justify-end mb-4 flex-grow">
+							<div className="flex flex-wrap justify-evenly">
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gradient-to-br from-red-400 to-red-500 hover:bg-gradient-to-br hover:from-red-500 hover:to-red-500" onClick={() => {
+									if (props.conn) {
+										let mess: GameMessage = { type: MsgType.Action, data: "fold" }
+										props.conn.send(JSON.stringify(mess))
+									}
+								}}> Fold </button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-300 dark:bg-gray-800 hover:bg-gray-900" onClick={() => {
+									if (props.conn) {
+										let mess: GameMessage = { type: MsgType.Action, data: "check" }
+										props.conn.send(JSON.stringify(mess))
+									}
+								}}>Check</button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-300 dark:bg-gray-800 hover:bg-gray-900" onClick={() => {
+									if (props.conn) {
+										let mess: GameMessage = { type: MsgType.Action, data: "call" }
+										props.conn.send(JSON.stringify(mess))
+									}
+								}}>Call</button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gradient-to-br from-emerald-400 to-emerald-500 hover:bg-gradient-to-br hover:from-emerald-500 hover:to-emerald-500" onClick={() => {
+									if (props.conn) {
+										let mess: GameMessage = { type: MsgType.Action, data: "raise" }
+										props.conn.send(JSON.stringify(mess))
+									}
+								}}>Raise</button>
+							</div>
 						</div>
 					) : (
-						<div className="flex justify-end h-14 mb-4">
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800">Fold</button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800">Check</button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800">Call</button>
-							<button className="mr-4 py-2 px-10 rounded text-white font-bold bg-gray-800">Raise</button>
+						<div className="flex justify-end mb-4 flex-grow">
+							<div className="flex flex-wrap justify-evenly">
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-400 dark:bg-gray-800">Fold</button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-400 dark:bg-gray-800">Check</button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-400 dark:bg-gray-800">Call</button>
+								<button className="px-10 py-2 m-2 rounded text-white font-bold bg-gray-400 dark:bg-gray-800">Raise</button>
+							</div>
 						</div>
 					)
 				}

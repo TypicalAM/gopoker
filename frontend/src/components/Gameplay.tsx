@@ -1,3 +1,4 @@
+import { read } from 'fs';
 import React, { useEffect, useRef, useState } from 'react';
 import { GameMessage, MsgType } from './GameMessage';
 import { GameState, DefaultGameState } from './GameState';
@@ -61,7 +62,12 @@ function Gameplay() {
 	useEffect(() => {
 		// Get the active game
 		const activeGame = localStorage.getItem('activeGame');
-		if (!activeGame) return;
+		if (!activeGame) {
+			localStorage.removeItem('activeGame')
+			window.location.replace('/');
+			return
+		}
+
 		setGameName(id.short(activeGame));
 
 		// Only connect if we haven't already
@@ -87,7 +93,7 @@ function Gameplay() {
 		};
 
 		ws.current.onerror = () => {
-			setStatusMessage('Error connecting to websocket');
+			setStatusMessage('Error connecting to websocket, the game might not exist! Exiting');
 			localStorage.removeItem('activeGame');
 			setTimeout(() => {
 				window.location.replace('/');
@@ -98,13 +104,16 @@ function Gameplay() {
 
 	return (
 		<div>
-			<div className="flex top-0 items-center h-16 left-0 bg-gray-50 dark:bg-gray-700 overflow-auto">
-				<h1 className="ml-5 left-0 text-2xl font-bold text-gray-900 dark:text-gray-100">
+			<div className="flex top-0 items-center h-16 left-0 bg-gray-50 dark:bg-gray-700">
+				<a className="ml-5 left-0 text-2xl font-bold text-gray-900 dark:text-gray-100" href="#" onClick={() => {
+					navigator.clipboard.writeText(localStorage.getItem('activeGame')!)
+					alert("Copied the game id to clipboard!")
+				}}>
 					{gameName} - {statusMessage}
-				</h1>
+				</a>
 			</div>
 
-			<div className="flex-grow items-center justify-center">
+			<div className="flex-grow items-center justify-center bg-white dark:bg-gray-900">
 				<Table {...{ state: gameState, conn: ws.current }} />
 			</div>
 		</div>

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/TypicalAM/gopoker/models"
@@ -29,7 +30,7 @@ func (con controller) Game(c *gin.Context) {
 		return
 	}
 
-	game, err := ensureCorrectGame(con.db, user, c)
+	game, err := con.ensureCorrectGame(con.db, user, c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "incorrect game"})
 		return
@@ -45,19 +46,42 @@ func (con controller) Game(c *gin.Context) {
 }
 
 // ensureCorrectGame checks if the user is in the game and the game exists
-func ensureCorrectGame(db *gorm.DB, user *models.User, c *gin.Context) (*models.Game, error) {
+func (con controller) ensureCorrectGame(db *gorm.DB, user *models.User, c *gin.Context) (*models.Game, error) {
+	log.Println("Adding a player because of the link")
 	session := sessions.Default(c)
 	gameID := c.Param("id")
-
-	gameIDInterface := session.Get(models.GameIDKey)
-	if gameIDInterface == nil || gameIDInterface.(string) != gameID {
-		return nil, incorrectGameErr
-	}
 
 	var game models.Game
 	res := db.Model(&models.Game{}).Preload("Players").Where("uuid = ?", gameID).Find(&game)
 	if res.Error != nil {
 		return nil, incorrectGameErr
+	}
+
+	gameIDInterface := session.Get(models.GameIDKey)
+	if gameIDInterface == nil || gameIDInterface.(string) != gameID {
+		// Can we add a player?
+		if game.Playing || len(game.Players) == con.config.GamePlayerCap {
+			return nil, incorrectGameErr
+		}
+
+		game.Players = append(game.Players, *user)
+		res = con.db.Save(&game)
+		if res.Error != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "There was an error adding you to the game. Please try again later.",
+			})
+			return nil, res.Error
+		}
+
+		session.Set(models.GameIDKey, game.UUID)
+		if err := session.Save(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "There was an error saving your session. Please try again later.",
+			})
+			return nil, err
+		}
+
+		return &game, nil
 	}
 
 	for _, player := range game.Players {

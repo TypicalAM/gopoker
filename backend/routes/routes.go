@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"fmt"
+
 	"github.com/TypicalAM/gopoker/config"
 	"github.com/TypicalAM/gopoker/middleware"
 	"github.com/TypicalAM/gopoker/services/game"
@@ -26,7 +28,11 @@ func New(db *gorm.DB, cfg *config.Config, uploader upload.Uploader) (*gin.Engine
 
 	// Allow cors
 	corsCofig := cors.DefaultConfig()
-	corsCofig.AllowOrigins = cfg.TrustedOrigins
+	corsCofig.AllowOriginFunc = func(str string) bool {
+		fmt.Println(str)
+		return true
+	}
+
 	corsCofig.AllowCredentials = true
 
 	// Default middleware
