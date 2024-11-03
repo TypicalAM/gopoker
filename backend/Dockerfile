@@ -30,11 +30,12 @@ COPY --from=builder /go/main /go/main
 COPY ./entrypoint.sh /go/entrypoint.sh
 RUN chmod +x go/entrypoint.sh
 
-ENV PORT 8080
-ENV GIN_MODE release
+ENV PORT=8080
+ENV GIN_MODE=release
 EXPOSE 8080
 
 WORKDIR /go
 
 # Run the Go Gin binary.
 ENTRYPOINT ["/go/entrypoint.sh"]
+CMD ["/go/main"]
